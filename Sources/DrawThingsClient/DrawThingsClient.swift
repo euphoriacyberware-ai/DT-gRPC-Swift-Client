@@ -37,9 +37,9 @@ public class DrawThingsClient: ObservableObject {
         self.service = try DrawThingsService(address: address, useTLS: useTLS)
     }
     
-    public func connect() async {
+    public func connect(sharedSecret: String? = nil) async {
         do {
-            _ = try await service.echo()
+            _ = try await service.echo(sharedSecret: sharedSecret)
             isConnected = true
             lastError = nil
         } catch {
@@ -121,7 +121,12 @@ public class DrawThingsClient: ObservableObject {
         }
 
         if let mask = mask {
-            maskData = try ImageHelpers.imageToDTTensor(mask, forceRGB: true)
+            // Draw Things' mask format is a 1-byte-per-pixel alpha-derived mask
+            // (68-byte header + 0/2 values), not an RGB image tensor. Encoding
+            // the mask with imageToDTTensor produces the wrong tensor shape and
+            // crashes the DT server in isInpainting() with an out-of-bounds
+            // read. createMaskFromAlpha emits the format DT expects.
+            maskData = try ImageHelpers.createMaskFromAlpha(mask)
         }
 
         let result = try await service.generateImage(

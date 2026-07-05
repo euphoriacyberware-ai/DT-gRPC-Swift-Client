@@ -61,9 +61,12 @@ public actor DrawThingsService {
         try? group.syncShutdownGracefully()
     }
     
-    public func echo(name: String = "Swift-Client") async throws -> EchoReply {
+    public func echo(name: String = "Swift-Client", sharedSecret: String? = nil) async throws -> EchoReply {
         let request = EchoRequest.with {
             $0.name = name
+            if let sharedSecret = sharedSecret {
+                $0.sharedSecret = sharedSecret
+            }
         }
 
         // Configure call options to accept compressed responses
@@ -102,7 +105,7 @@ public actor DrawThingsService {
         
         // Ensure we have models metadata
         if self.models == nil {
-            _ = try await echo()
+            _ = try await echo(sharedSecret: sharedSecret)
         }
         
         let request = ImageGenerationRequest.with {
