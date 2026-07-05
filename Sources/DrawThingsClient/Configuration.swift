@@ -445,10 +445,10 @@ public struct DrawThingsConfiguration: Sendable {
         configT.hiresFixStrength = hiresFixStrength
 
         // Upscaler
-        configT.upscaler = upscaler
+        configT.upscaler = upscaler?.isEmpty == false ? upscaler : nil
 
         // Face restoration
-        configT.faceRestoration = faceRestoration
+        configT.faceRestoration = faceRestoration?.isEmpty == false ? faceRestoration : nil
 
         // Stage 2 parameters
         configT.stage2Steps = UInt32(stage2Steps)
@@ -475,7 +475,7 @@ public struct DrawThingsConfiguration: Sendable {
         configT.numFrames = UInt32(numFrames)
 
         // Refiner parameters
-        configT.refinerModel = refinerModel
+        configT.refinerModel = refinerModel?.isEmpty == false ? refinerModel : nil
         configT.refinerStart = refinerStart
         configT.zeroNegativePrompt = zeroNegativePrompt
 
