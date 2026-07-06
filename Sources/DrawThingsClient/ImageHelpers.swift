@@ -809,9 +809,9 @@ public struct ImageHelpers {
             let g: Float = 53.237 * v0 - 1.4623 * v1 + 12.991 * v2 - 28.043 * v3 + 127.46
             let b: Float = 58.182 * v0 + 4.3734 * v1 - 3.3735 * v2 - 26.722 * v3 + 114.5
 
-            uint8Ptr[i * 3 + 0] = UInt8(clamping: Int(r))
-            uint8Ptr[i * 3 + 1] = UInt8(clamping: Int(g))
-            uint8Ptr[i * 3 + 2] = UInt8(clamping: Int(b))
+            uint8Ptr[i * 3 + 0] = UInt8(clamping: Int(r.isFinite ? r : 0))
+            uint8Ptr[i * 3 + 1] = UInt8(clamping: Int(g.isFinite ? g : 0))
+            uint8Ptr[i * 3 + 2] = UInt8(clamping: Int(b.isFinite ? b : 0))
         }
     }
 
