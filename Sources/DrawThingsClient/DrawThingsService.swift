@@ -167,7 +167,13 @@ public actor DrawThingsService {
             $0.chunked = true
         }
         
-        return try await withCheckedThrowingContinuation { continuation in
+        // Bridge structured task cancellation into the EventLoop-based
+        // streaming call: without this, cancelling the surrounding Task
+        // (e.g. DrawThingsQueue.cancel on the running request) never sends
+        // RST_STREAM, so the server generates the full image to completion.
+        let callBox = CancellableCallBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
             var generatedImages: [Data] = []
             var lastImageChunk = Data()
             var lastAudioChunk = Data()
@@ -284,6 +290,10 @@ public actor DrawThingsService {
                 }
             }
 
+            // Late registration is handled inside the box: if the task was
+            // cancelled before the call existed, it is cancelled right here.
+            callBox.register(call)
+
             call.status.whenComplete { result in
                 guard !hasResumed else {
                     DrawThingsClientLogger.notice("Attempted to resume continuation twice")
@@ -309,13 +319,23 @@ public actor DrawThingsService {
                     }
                     continuation.resume(returning: generatedImages)
                 case .failure(let err):
-                    DrawThingsClientLogger.error("gRPC call failed: \(err)")
-                    continuation.resume(throwing: err)
+                    if callBox.wasCancelled {
+                        // The failure is our own RST_STREAM — surface it as
+                        // Swift cancellation, not a server error.
+                        DrawThingsClientLogger.info("gRPC call cancelled by caller")
+                        continuation.resume(throwing: CancellationError())
+                    } else {
+                        DrawThingsClientLogger.error("gRPC call failed: \(err)")
+                        continuation.resume(throwing: err)
+                    }
                 }
             }
+            }
+        } onCancel: {
+            callBox.cancel()
         }
     }
-    
+
     public func checkFilesExist(files: [String], filesWithHash: [String] = []) async throws -> FileExistenceResponse {
         let request = FileListRequest.with {
             $0.files = files
@@ -324,5 +344,40 @@ public actor DrawThingsService {
 
         let call = client.filesExist(request)
         return try await call.response.get()
+    }
+}
+/// Thread-safe bridge between structured task cancellation and the
+/// EventLoop-based streaming call: `onCancel` may fire on any thread,
+/// before or after the call exists. Cancelling the call sends RST_STREAM,
+/// which is the only abort signal the Draw Things server supports.
+private final class CancellableCallBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var call: ServerStreamingCall<ImageGenerationRequest, ImageGenerationResponse>?
+    private var cancelled = false
+
+    var wasCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+
+    /// Registers the live call; when cancellation already happened before
+    /// the call existed, it is cancelled immediately.
+    func register(_ call: ServerStreamingCall<ImageGenerationRequest, ImageGenerationResponse>) {
+        lock.lock()
+        self.call = call
+        let shouldCancel = cancelled
+        lock.unlock()
+        if shouldCancel {
+            call.cancel(promise: nil)
+        }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let liveCall = call
+        lock.unlock()
+        liveCall?.cancel(promise: nil)
     }
 }
