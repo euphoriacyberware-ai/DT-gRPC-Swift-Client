@@ -542,12 +542,10 @@ public struct DrawThingsConfiguration: Sendable {
         return Data(bufferPointer)
     }
 
-    // Map seed mode to FlatBuffer enum
+    // Map seed mode to FlatBuffer enum. The raw values line up 1:1
+    // (legacy=0, torchcpucompatible=1, scalealike=2, nvidiagpucompatible=3),
+    // so preserve the pasted value exactly; only fall back for unknown modes.
     private func mapSeedModeToEnum(_ mode: Int32) -> SeedMode {
-        switch mode {
-        case 0: return .legacy
-        case 1, 2: return .torchcpucompatible
-        default: return .torchcpucompatible
-        }
+        SeedMode(rawValue: Int8(truncatingIfNeeded: mode)) ?? .torchcpucompatible
     }
 }

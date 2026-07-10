@@ -1,8 +1,33 @@
 import XCTest
+import FlatBuffers
 @testable import DrawThingsClient
 
 final class DrawThingsClientTests: XCTestCase {
-    
+
+    /// The seed mode must survive `toFlatBufferData()` unchanged — regression for a
+    /// bug that collapsed scalealike(2) and nvidiagpucompatible(3) to
+    /// torchcpucompatible, which changes the initial noise and breaks reproduction.
+    func testSeedModeSurvivesEncoding() throws {
+        let cases: [(Int32, SeedMode)] = [
+            (0, .legacy),
+            (1, .torchcpucompatible),
+            (2, .scalealike),
+            (3, .nvidiagpucompatible),
+        ]
+        for (mode, expected) in cases {
+            let config = DrawThingsConfiguration(
+                width: 512, height: 512, steps: 20,
+                model: "sd_xl_base_1.0.safetensors", guidanceScale: 7.0,
+                seedMode: mode
+            )
+            let data = try config.toFlatBufferData()
+            var buffer = ByteBuffer(data: data)
+            let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
+            let root = GenerationConfiguration(buffer, o: rootOffset)
+            XCTAssertEqual(root.seedMode, expected, "seedMode \(mode) should encode as \(expected)")
+        }
+    }
+
     func testConfigurationCreation() throws {
         let config = DrawThingsConfiguration(
             width: 512,
