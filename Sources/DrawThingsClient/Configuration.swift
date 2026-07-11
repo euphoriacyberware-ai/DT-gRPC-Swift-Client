@@ -225,13 +225,13 @@ public struct DrawThingsConfiguration: Sendable {
         separateOpenClipG: Bool = false,
         separateT5: Bool = false,
         tiledDiffusion: Bool = false,
-        diffusionTileWidth: Int32 = 16,
-        diffusionTileHeight: Int32 = 16,
-        diffusionTileOverlap: Int32 = 2,
+        diffusionTileWidth: Int32 = 1024,
+        diffusionTileHeight: Int32 = 1024,
+        diffusionTileOverlap: Int32 = 128,
         tiledDecoding: Bool = false,
-        decodingTileWidth: Int32 = 10,
-        decodingTileHeight: Int32 = 10,
-        decodingTileOverlap: Int32 = 2,
+        decodingTileWidth: Int32 = 640,
+        decodingTileHeight: Int32 = 640,
+        decodingTileOverlap: Int32 = 128,
         hiresFix: Bool = false,
         hiresFixWidth: Int32 = 0,
         hiresFixHeight: Int32 = 0,
@@ -428,15 +428,15 @@ public struct DrawThingsConfiguration: Sendable {
         configT.separateOpenClipG = separateOpenClipG
         configT.separateT5 = separateT5
 
-        // Tiled parameters
+        // Tiled parameters (FlatBuffer stores tile dimensions in units of 64 pixels)
         configT.tiledDiffusion = tiledDiffusion
-        configT.diffusionTileWidth = UInt16(diffusionTileWidth)
-        configT.diffusionTileHeight = UInt16(diffusionTileHeight)
-        configT.diffusionTileOverlap = UInt16(diffusionTileOverlap)
+        configT.diffusionTileWidth = UInt16(diffusionTileWidth / 64)
+        configT.diffusionTileHeight = UInt16(diffusionTileHeight / 64)
+        configT.diffusionTileOverlap = UInt16(diffusionTileOverlap / 64)
         configT.tiledDecoding = tiledDecoding
-        configT.decodingTileWidth = UInt16(decodingTileWidth)
-        configT.decodingTileHeight = UInt16(decodingTileHeight)
-        configT.decodingTileOverlap = UInt16(decodingTileOverlap)
+        configT.decodingTileWidth = UInt16(decodingTileWidth / 64)
+        configT.decodingTileHeight = UInt16(decodingTileHeight / 64)
+        configT.decodingTileOverlap = UInt16(decodingTileOverlap / 64)
 
         // HiRes Fix parameters
         configT.hiresFix = hiresFix
