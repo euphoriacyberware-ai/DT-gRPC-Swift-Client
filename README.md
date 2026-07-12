@@ -188,11 +188,107 @@ for resultData in results {
 
 ## Configuration JSON Handling
 
+Draw Things can export its configuration as JSON. Here is a complete example:
+
+```json
+{
+  "aestheticScore": 6,
+  "batchCount": 10,
+  "batchSize": 1,
+  "causalInference": 0,
+  "causalInferencePad": 0,
+  "cfgZeroInitSteps": 0,
+  "cfgZeroStar": false,
+  "clipLText": null,
+  "clipSkip": 1,
+  "clipWeight": 1,
+  "compressionArtifacts": "disabled",
+  "compressionArtifactsQuality": 43.1,
+  "controls": [],
+  "cropLeft": 0,
+  "cropTop": 0,
+  "decodingTileHeight": 640,
+  "decodingTileOverlap": 128,
+  "decodingTileWidth": 640,
+  "diffusionTileHeight": 1024,
+  "diffusionTileOverlap": 128,
+  "diffusionTileWidth": 1024,
+  "faceRestoration": null,
+  "fps": 5,
+  "guidanceEmbed": 3.5,
+  "guidanceScale": 1,
+  "guidingFrameNoise": 0.02,
+  "height": 1280,
+  "hiresFix": false,
+  "hiresFixHeight": 1024,
+  "hiresFixStrength": 0.7,
+  "hiresFixWidth": 1024,
+  "id": 0,
+  "imageGuidanceScale": 1.5,
+  "imagePriorSteps": 5,
+  "loras": [
+    {
+      "file": "zit_natalie_illustrated_lora_f16.ckpt",
+      "mode": "all",
+      "weight": 0.65
+    }
+  ],
+  "maskBlur": 1.5,
+  "maskBlurOutset": 0,
+  "model": "z_image_turbo_1.0_q8p.ckpt",
+  "motionScale": 127,
+  "negativeAestheticScore": 2.5,
+  "negativeOriginalImageHeight": 640,
+  "negativeOriginalImageWidth": 640,
+  "negativePromptForImagePrior": true,
+  "numFrames": 14,
+  "openClipGText": null,
+  "originalImageHeight": 1280,
+  "originalImageWidth": 1280,
+  "preserveOriginalAfterInpaint": true,
+  "refinerModel": null,
+  "refinerStart": 0.85,
+  "resolutionDependentShift": false,
+  "sampler": 17,
+  "seed": 945446116,
+  "seedMode": 2,
+  "separateClipL": false,
+  "separateOpenClipG": false,
+  "separateT5": false,
+  "sharpness": 0,
+  "shift": 3,
+  "speedUpWithGuidanceEmbed": true,
+  "stage2Guidance": 1,
+  "stage2Shift": 1,
+  "stage2Steps": 10,
+  "startFrameGuidance": 1,
+  "steps": 8,
+  "stochasticSamplingGamma": 0.3,
+  "strength": 1,
+  "t5TextEncoder": true,
+  "targetImageHeight": 1280,
+  "targetImageWidth": 1280,
+  "teaCache": false,
+  "teaCacheEnd": -1,
+  "teaCacheMaxSkipSteps": 3,
+  "teaCacheStart": 5,
+  "teaCacheThreshold": 0.2,
+  "tiledDecoding": false,
+  "tiledDiffusion": false,
+  "upscaler": null,
+  "upscalerScaleFactor": 0,
+  "width": 1280,
+  "zeroNegativePrompt": false
+}
+```
+
+See `./Examples/ConfigfromJSON.swift` for a complete function that parses a Draw Things JSON export into a `DrawThingsConfiguration`.
+
 When parsing Draw Things configuration JSON exports, be aware of these edge cases:
 
 ### Empty String vs Nil
 
-Draw Things exports empty optional fields as empty strings (`""`), not `null`. Treat empty strings as nil for these fields:
+Draw Things exports empty optional fields as empty strings (`""`) or `null`. Treat empty strings as nil for these fields:
 
 | Field | Empty String Means |
 |-------|-------------------|
@@ -200,17 +296,36 @@ Draw Things exports empty optional fields as empty strings (`""`), not `null`. T
 | `faceRestoration` | No face restoration |
 | `refinerModel` | No refiner model |
 
-**Warning**: If you pass an empty string for `upscaler`, Draw Things may use a default 4x upscaler, resulting in unexpected 4x larger output images.
+**Warning**: If you pass an empty string for `upscaler`, Draw Things will attempt to load it as a model name and crash.
 
-### Control Configuration
+### String Enums in JSON
 
-Draw Things JSON exports use `controlImportance` (string) while the FlatBuffer protocol uses `controlMode` (integer):
+Several fields are exported as strings in JSON but map to integer enums in the FlatBuffer protocol:
 
-| JSON `controlImportance` | Protocol `controlMode` |
-|--------------------------|----------------------|
+**LoRA mode** (`loras[].mode`):
+
+| JSON String | Enum Value |
+|-------------|-----------|
+| `"all"` | `0` |
+| `"base"` | `1` |
+| `"refiner"` | `2` |
+
+**Control importance** (`controls[].controlImportance`):
+
+| JSON String | Enum Value |
+|-------------|-----------|
 | `"balanced"` | `0` |
 | `"prompt"` | `1` |
 | `"control"` | `2` |
+
+**Compression artifacts** (`compressionArtifacts`):
+
+| JSON String | Enum Value |
+|-------------|-----------|
+| `"disabled"` | `0` |
+| `"h264"` | `1` |
+| `"h265"` | `2` |
+| `"jpeg"` | `3` |
 
 ### Sampler Values
 
@@ -238,6 +353,10 @@ Samplers are represented as integers in the configuration:
 | `unipctrailing` | `17` |
 | `unipcays` | `18` |
 | `tcdtrailing` | `19` |
+
+### Tile Dimensions
+
+Tile dimensions (`diffusionTileWidth`, `decodingTileHeight`, etc.) are in **pixels** in the JSON export. The `DrawThingsConfiguration` accepts pixel values and converts to 64-pixel units internally during FlatBuffer serialization.
 
 ## Installation
 
@@ -348,7 +467,7 @@ let config = DrawThingsConfiguration(
     clipSkip: 2
 )
 ```
-See ./Examples/Config from JSON.swift within this project for usable functions which populate a DrawThingsConfiguration from a Draw Things JSON configuration passed in a String value.
+See `./Examples/ConfigfromJSON.swift` within this project for a usable function which populates a `DrawThingsConfiguration` from a Draw Things JSON configuration string.
 
 ### Shared Secret Authentication
 

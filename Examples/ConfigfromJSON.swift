@@ -2,60 +2,158 @@
 //  Config from JSON.swift
 //  DrawThingsClient
 //  These functions are for creating a DrawThingsConfiguration from JSON provided in a String
+//
+//  Example Draw Things JSON export:
+//  {
+//    "aestheticScore": 6,
+//    "batchCount": 10,
+//    "batchSize": 1,
+//    "causalInference": 0,
+//    "causalInferencePad": 0,
+//    "cfgZeroInitSteps": 0,
+//    "cfgZeroStar": false,
+//    "clipLText": null,
+//    "clipSkip": 1,
+//    "clipWeight": 1,
+//    "compressionArtifacts": "disabled",
+//    "compressionArtifactsQuality": 43.1,
+//    "controls": [],
+//    "cropLeft": 0,
+//    "cropTop": 0,
+//    "decodingTileHeight": 640,
+//    "decodingTileOverlap": 128,
+//    "decodingTileWidth": 640,
+//    "diffusionTileHeight": 1024,
+//    "diffusionTileOverlap": 128,
+//    "diffusionTileWidth": 1024,
+//    "faceRestoration": null,
+//    "fps": 5,
+//    "guidanceEmbed": 3.5,
+//    "guidanceScale": 1,
+//    "guidingFrameNoise": 0.02,
+//    "height": 1280,
+//    "hiresFix": false,
+//    "hiresFixHeight": 1024,
+//    "hiresFixStrength": 0.7,
+//    "hiresFixWidth": 1024,
+//    "id": 0,
+//    "imageGuidanceScale": 1.5,
+//    "imagePriorSteps": 5,
+//    "loras": [
+//      {
+//        "file": "zit_natalie_illustrated_lora_f16.ckpt",
+//        "mode": "all",
+//        "weight": 0.65
+//      }
+//    ],
+//    "maskBlur": 1.5,
+//    "maskBlurOutset": 0,
+//    "model": "z_image_turbo_1.0_q8p.ckpt",
+//    "motionScale": 127,
+//    "negativeAestheticScore": 2.5,
+//    "negativeOriginalImageHeight": 640,
+//    "negativeOriginalImageWidth": 640,
+//    "negativePromptForImagePrior": true,
+//    "numFrames": 14,
+//    "openClipGText": null,
+//    "originalImageHeight": 1280,
+//    "originalImageWidth": 1280,
+//    "preserveOriginalAfterInpaint": true,
+//    "refinerModel": null,
+//    "refinerStart": 0.85,
+//    "resolutionDependentShift": false,
+//    "sampler": 17,
+//    "seed": 945446116,
+//    "seedMode": 2,
+//    "separateClipL": false,
+//    "separateOpenClipG": false,
+//    "separateT5": false,
+//    "sharpness": 0,
+//    "shift": 3,
+//    "speedUpWithGuidanceEmbed": true,
+//    "stage2Guidance": 1,
+//    "stage2Shift": 1,
+//    "stage2Steps": 10,
+//    "startFrameGuidance": 1,
+//    "steps": 8,
+//    "stochasticSamplingGamma": 0.3,
+//    "strength": 1,
+//    "t5TextEncoder": true,
+//    "targetImageHeight": 1280,
+//    "targetImageWidth": 1280,
+//    "teaCache": false,
+//    "teaCacheEnd": -1,
+//    "teaCacheMaxSkipSteps": 3,
+//    "teaCacheStart": 5,
+//    "teaCacheThreshold": 0.2,
+//    "tiledDecoding": false,
+//    "tiledDiffusion": false,
+//    "upscaler": null,
+//    "upscalerScaleFactor": 0,
+//    "width": 1280,
+//    "zeroNegativePrompt": false
+//  }
 
-/// Load configuration from JSON, applying only values that are present in the JSON
-/// All other values use DrawThingsConfiguration defaults
-private func loadDrawThingsConfig(for key: String) async -> DrawThingsConfiguration? {
-    // Load JSON string from UserDefaults (saved by SettingsView)
-    guard let jsonString = UserDefaults.standard.string(forKey: key) else {
-        print("⚠️ No config found for key: \(key)")
-        return nil
-    }
-    
-    print("📄 Loaded JSON config (\(jsonString.count) characters)")
-    
-    // Parse as generic JSON to extract fields
+import DrawThingsClient
+
+/// Load configuration from a Draw Things JSON export string.
+/// All values not present in the JSON use DrawThingsConfiguration defaults.
+func configurationFromJSON(_ jsonString: String) -> DrawThingsConfiguration? {
     guard let data = jsonString.data(using: .utf8),
           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-        print("❌ Failed to parse JSON")
+        print("Failed to parse JSON")
         return nil
     }
-    
-    // Extract core fields (with fallbacks)
-    let model = json["model"] as? String ?? ""
-    let steps = json["steps"] as? Int ?? 30
-    let width = json["width"] as? Int ?? 1152
-    let height = json["height"] as? Int ?? 1728
-    
-    // IMPORTANT: Validate model is not empty to prevent crash
-    guard !model.isEmpty else {
-        print("❌ Model name is empty in configuration!")
+
+    // Model is required
+    guard let model = json["model"] as? String, !model.isEmpty else {
+        print("Model name is missing or empty in configuration")
         return nil
     }
-    
-    // Sampler handling - convert from int to SamplerType enum
-    var samplerType: SamplerType = .dpmpp2mkarras
-    if let samplerInt = json["sampler"] as? Int {
-        samplerType = mapSamplerIntToEnum(samplerInt)
+
+    let steps = json["steps"] as? Int ?? 20
+    let width = json["width"] as? Int ?? 1024
+    let height = json["height"] as? Int ?? 1024
+
+    // Sampler - integer in JSON
+    let samplerType: SamplerType
+    if let samplerInt = json["sampler"] as? Int,
+       let sampler = SamplerType(rawValue: Int8(samplerInt)) {
+        samplerType = sampler
+    } else {
+        samplerType = .dpmpp2mkarras
     }
-    
-    // Text Guidance - guidanceScale in JSON
-    let cfgScale = (json["guidanceScale"] as? Double) ?? 7.0
-    
-    // Parse LoRAs
+
+    let guidanceScale = Float(json["guidanceScale"] as? Double ?? 7.0)
+
+    // Seed - nil means random
+    let seed: Int64?
+    if let seedValue = json["seed"] as? Int {
+        seed = Int64(seedValue)
+    } else {
+        seed = nil
+    }
+
+    // Parse LoRAs - DT exports mode as a string ("all", "base", "refiner")
     var loras: [LoRAConfig] = []
     if let lorasArray = json["loras"] as? [[String: Any]] {
         for loraDict in lorasArray {
             if let file = loraDict["file"] as? String {
                 let weight = Float(loraDict["weight"] as? Double ?? 1.0)
-                let modeInt = loraDict["mode"] as? Int ?? 0
-                let mode = mapLoRAModeIntToEnum(modeInt)
+                let mode: LoRAMode
+                if let modeStr = loraDict["mode"] as? String {
+                    mode = mapLoRAModeStringToEnum(modeStr)
+                } else if let modeInt = loraDict["mode"] as? Int {
+                    mode = LoRAMode(rawValue: Int8(modeInt)) ?? .all
+                } else {
+                    mode = .all
+                }
                 loras.append(LoRAConfig(file: file, weight: weight, mode: mode))
             }
         }
     }
-    
-    // Parse Controls
+
+    // Parse Controls - DT exports controlImportance as a string ("balanced", "prompt", "control")
     var controls: [ControlConfig] = []
     if let controlsArray = json["controls"] as? [[String: Any]] {
         for controlDict in controlsArray {
@@ -63,8 +161,14 @@ private func loadDrawThingsConfig(for key: String) async -> DrawThingsConfigurat
                 let weight = Float(controlDict["weight"] as? Double ?? 1.0)
                 let guidanceStart = Float(controlDict["guidanceStart"] as? Double ?? 0.0)
                 let guidanceEnd = Float(controlDict["guidanceEnd"] as? Double ?? 1.0)
-                let controlModeInt = controlDict["controlImportance"] as? Int ?? 0
-                let controlMode = mapControlModeIntToEnum(controlModeInt)
+                let controlMode: ControlMode
+                if let importanceStr = controlDict["controlImportance"] as? String {
+                    controlMode = mapControlModeStringToEnum(importanceStr)
+                } else if let modeInt = controlDict["controlImportance"] as? Int {
+                    controlMode = ControlMode(rawValue: Int8(modeInt)) ?? .balanced
+                } else {
+                    controlMode = .balanced
+                }
                 controls.append(ControlConfig(
                     file: file,
                     weight: weight,
@@ -75,242 +179,151 @@ private func loadDrawThingsConfig(for key: String) async -> DrawThingsConfigurat
             }
         }
     }
-    
-    // Strength handling - use value from JSON config
-    let strength = Float(json["strength"] as? Double ?? 1.0)
-    
-    // Extract ALL other parameters with defaults
-    let shift = Float(json["shift"] as? Double ?? 1.0)
-    let clipSkip = Int32(json["clipSkip"] as? Int ?? 1)
-    
-    // Batch parameters
-    let batchCount = Int32(json["batchCount"] as? Int ?? 1)
-    let batchSize = Int32(json["batchSize"] as? Int ?? 1)
-    
-    // Guidance parameters
-    let imageGuidanceScale = Float(json["imageGuidanceScale"] as? Double ?? 1.5)
-    let clipWeight = Float(json["clipWeight"] as? Double ?? 1.0)
-    let guidanceEmbed = Float(json["guidanceEmbed"] as? Double ?? cfgScale)
-    let speedUpWithGuidanceEmbed = json["speedUpWithGuidanceEmbed"] as? Bool ?? true
-    let cfgZeroStar = json["cfgZeroStar"] as? Bool ?? false
-    let cfgZeroInitSteps = Int32(json["cfgZeroInitSteps"] as? Int ?? 0)
 
-    // Mask/Inpaint parameters
-    let maskBlur = Float(json["maskBlur"] as? Double ?? 1.5)
-    let maskBlurOutset = Int32(json["maskBlurOutset"] as? Int ?? 0)
-    let preserveOriginalAfterInpaint = json["preserveOriginalAfterInpaint"] as? Bool ?? true
-    let enableInpainting = json["enableInpainting"] as? Bool ?? false
-    
-    // Quality parameters
-    let sharpness = Float(json["sharpness"] as? Double ?? 0.0)
-    let stochasticSamplingGamma = Float(json["stochasticSamplingGamma"] as? Double ?? 0.3)
-    let aestheticScore = Float(json["aestheticScore"] as? Double ?? 6.0)
-    let negativeAestheticScore = Float(json["negativeAestheticScore"] as? Double ?? 2.5)
-    
-    // Image prior parameters
-    let negativePromptForImagePrior = json["negativePromptForImagePrior"] as? Bool ?? true
-    let imagePriorSteps = Int32(json["imagePriorSteps"] as? Int ?? 5)
-    
-    // Crop/Size parameters
-    let cropTop = Int32(json["cropTop"] as? Int ?? 0)
-    let cropLeft = Int32(json["cropLeft"] as? Int ?? 0)
-    let originalImageHeight = Int32(json["originalImageHeight"] as? Int ?? 0)
-    let originalImageWidth = Int32(json["originalImageWidth"] as? Int ?? 0)
-    let targetImageHeight = Int32(json["targetImageHeight"] as? Int ?? 0)
-    let targetImageWidth = Int32(json["targetImageWidth"] as? Int ?? 0)
-    let negativeOriginalImageHeight = Int32(json["negativeOriginalImageHeight"] as? Int ?? 0)
-    let negativeOriginalImageWidth = Int32(json["negativeOriginalImageWidth"] as? Int ?? 0)
-    
-    // Upscaler parameters
-    let upscalerScaleFactor = Int32(json["upscalerScaleFactor"] as? Int ?? 0)
-    
-    // Text encoder parameters
-    let resolutionDependentShift = json["resolutionDependentShift"] as? Bool ?? true
-    let t5TextEncoder = json["t5TextEncoder"] as? Bool ?? true
-    let separateClipL = json["separateClipL"] as? Bool ?? false
-    let separateOpenClipG = json["separateOpenClipG"] as? Bool ?? false
-    let separateT5 = json["separateT5"] as? Bool ?? false
-    
-    // Tiled parameters
-    let tiledDiffusion = json["tiledDiffusion"] as? Bool ?? false
-    let diffusionTileWidth = Int32(json["diffusionTileWidth"] as? Int ?? 16)
-    let diffusionTileHeight = Int32(json["diffusionTileHeight"] as? Int ?? 16)
-    let diffusionTileOverlap = Int32(json["diffusionTileOverlap"] as? Int ?? 2)
-    let tiledDecoding = json["tiledDecoding"] as? Bool ?? false
-    let decodingTileWidth = Int32(json["decodingTileWidth"] as? Int ?? 10)
-    let decodingTileHeight = Int32(json["decodingTileHeight"] as? Int ?? 10)
-    let decodingTileOverlap = Int32(json["decodingTileOverlap"] as? Int ?? 2)
-    
-    // HiRes Fix parameters
-    let hiresFix = json["hiresFix"] as? Bool ?? false
-    let hiresFixWidth = Int32(json["hiresFixWidth"] as? Int ?? 0)
-    let hiresFixHeight = Int32(json["hiresFixHeight"] as? Int ?? 0)
-    let hiresFixStrength = Float(json["hiresFixStrength"] as? Double ?? 0.7)
-    
-    // Stage 2 parameters
-    let stage2Steps = Int32(json["stage2Steps"] as? Int ?? 10)
-    let stage2Guidance = Float(json["stage2Guidance"] as? Double ?? 1.0)
-    let stage2Shift = Float(json["stage2Shift"] as? Double ?? 1.0)
-    
-    // TEA Cache parameters
-    let teaCache = json["teaCache"] as? Bool ?? false
-    let teaCacheStart = Int32(json["teaCacheStart"] as? Int ?? 5)
-    let teaCacheEnd = Int32(json["teaCacheEnd"] as? Int ?? -1)
-    let teaCacheThreshold = Float(json["teaCacheThreshold"] as? Double ?? 0.06)
-    let teaCacheMaxSkipSteps = Int32(json["teaCacheMaxSkipSteps"] as? Int ?? 3)
-    
-    // Causal inference parameters
-    let causalInference = Int32(json["causalInference"] as? Int ?? 3)
-    let causalInferencePad = Int32(json["causalInferencePad"] as? Int ?? 0)
-    
-    // Video parameters
-    let fps = Int32(json["fps"] as? Int ?? 5)
-    let motionScale = Int32(json["motionScale"] as? Int ?? 127)
-    let guidingFrameNoise = Float(json["guidingFrameNoise"] as? Double ?? 0.02)
-    let startFrameGuidance = Float(json["startFrameGuidance"] as? Double ?? 1.0)
-    let numFrames = Int32(json["numFrames"] as? Int ?? 14)
-    
-    // Refiner parameters
-    let refinerModel = json["refinerModel"] as? String
-    let refinerStart = Float(json["refinerStart"] as? Double ?? 0.85)
-    let zeroNegativePrompt = json["zeroNegativePrompt"] as? Bool ?? false
-    
-    // Seed mode
-    let seedMode = Int32(json["seedMode"] as? Int ?? 2)
-    
-    print("✅ Parsed config:")
-    print("   Model: \(model)")
-    print("   Steps: \(steps), CFG: \(cfgScale), Size: \(width)x\(height)")
-    print("   Sampler: \(samplerType) (rawValue: \(samplerType.rawValue)), Shift: \(shift), Strength: \(strength)")
-    print("   LoRAs: \(loras.count), Controls: \(controls.count)")
-    
-    // Create DrawThingsConfiguration with ALL parameters
+    // Compression artifacts - DT exports as string ("disabled", "jpeg", "webp")
+    let compressionArtifacts: CompressionMethod
+    if let compStr = json["compressionArtifacts"] as? String {
+        compressionArtifacts = mapCompressionMethodStringToEnum(compStr)
+    } else if let compInt = json["compressionArtifacts"] as? Int {
+        compressionArtifacts = CompressionMethod(rawValue: Int8(compInt)) ?? .disabled
+    } else {
+        compressionArtifacts = .disabled
+    }
+
+    // Optional string fields - treat empty strings as nil
+    let refinerModel: String? = {
+        guard let s = json["refinerModel"] as? String, !s.isEmpty else { return nil }
+        return s
+    }()
+    let upscaler: String? = {
+        guard let s = json["upscaler"] as? String, !s.isEmpty else { return nil }
+        return s
+    }()
+    let faceRestoration: String? = {
+        guard let s = json["faceRestoration"] as? String, !s.isEmpty else { return nil }
+        return s
+    }()
+
+    // Separate text encoder prompts
+    let clipLText = json["clipLText"] as? String
+    let openClipGText = json["openClipGText"] as? String
+
     let config = DrawThingsConfiguration(
         width: Int32(width),
         height: Int32(height),
         steps: Int32(steps),
         model: model,
         sampler: samplerType,
-        guidanceScale: Float(cfgScale),
-        seed: nil,
-        clipSkip: clipSkip,
+        guidanceScale: guidanceScale,
+        seed: seed,
+        clipSkip: Int32(json["clipSkip"] as? Int ?? 1),
         loras: loras,
         controls: controls,
-        shift: shift,
-        batchCount: batchCount,
-        batchSize: batchSize,
-        strength: strength,
-        imageGuidanceScale: imageGuidanceScale,
-        clipWeight: clipWeight,
-        guidanceEmbed: guidanceEmbed,
-        speedUpWithGuidanceEmbed: speedUpWithGuidanceEmbed,
-        cfgZeroStar: cfgZeroStar,
-        cfgZeroInitSteps: cfgZeroInitSteps,
-        maskBlur: maskBlur,
-        maskBlurOutset: maskBlurOutset,
-        preserveOriginalAfterInpaint: preserveOriginalAfterInpaint,
-        enableInpainting: enableInpainting,
-        sharpness: sharpness,
-        stochasticSamplingGamma: stochasticSamplingGamma,
-        aestheticScore: aestheticScore,
-        negativeAestheticScore: negativeAestheticScore,
-        negativePromptForImagePrior: negativePromptForImagePrior,
-        imagePriorSteps: imagePriorSteps,
-        cropTop: cropTop,
-        cropLeft: cropLeft,
-        originalImageHeight: originalImageHeight,
-        originalImageWidth: originalImageWidth,
-        targetImageHeight: targetImageHeight,
-        targetImageWidth: targetImageWidth,
-        negativeOriginalImageHeight: negativeOriginalImageHeight,
-        negativeOriginalImageWidth: negativeOriginalImageWidth,
-        upscalerScaleFactor: upscalerScaleFactor,
-        resolutionDependentShift: resolutionDependentShift,
-        t5TextEncoder: t5TextEncoder,
-        separateClipL: separateClipL,
-        separateOpenClipG: separateOpenClipG,
-        separateT5: separateT5,
-        tiledDiffusion: tiledDiffusion,
-        diffusionTileWidth: diffusionTileWidth,
-        diffusionTileHeight: diffusionTileHeight,
-        diffusionTileOverlap: diffusionTileOverlap,
-        tiledDecoding: tiledDecoding,
-        decodingTileWidth: decodingTileWidth,
-        decodingTileHeight: decodingTileHeight,
-        decodingTileOverlap: decodingTileOverlap,
-        hiresFix: hiresFix,
-        hiresFixWidth: hiresFixWidth,
-        hiresFixHeight: hiresFixHeight,
-        hiresFixStrength: hiresFixStrength,
-        stage2Steps: stage2Steps,
-        stage2Guidance: stage2Guidance,
-        stage2Shift: stage2Shift,
-        teaCache: teaCache,
-        teaCacheStart: teaCacheStart,
-        teaCacheEnd: teaCacheEnd,
-        teaCacheThreshold: teaCacheThreshold,
-        teaCacheMaxSkipSteps: teaCacheMaxSkipSteps,
-        causalInference: causalInference,
-        causalInferencePad: causalInferencePad,
-        fps: fps,
-        motionScale: motionScale,
-        guidingFrameNoise: guidingFrameNoise,
-        startFrameGuidance: startFrameGuidance,
-        numFrames: numFrames,
+        shift: Float(json["shift"] as? Double ?? 1.0),
+        batchCount: Int32(json["batchCount"] as? Int ?? 1),
+        batchSize: Int32(json["batchSize"] as? Int ?? 1),
+        strength: Float(json["strength"] as? Double ?? 1.0),
+        imageGuidanceScale: Float(json["imageGuidanceScale"] as? Double ?? 1.5),
+        clipWeight: Float(json["clipWeight"] as? Double ?? 1.0),
+        guidanceEmbed: Float(json["guidanceEmbed"] as? Double ?? 3.5),
+        speedUpWithGuidanceEmbed: json["speedUpWithGuidanceEmbed"] as? Bool ?? true,
+        cfgZeroStar: json["cfgZeroStar"] as? Bool ?? false,
+        cfgZeroInitSteps: Int32(json["cfgZeroInitSteps"] as? Int ?? 0),
+        compressionArtifacts: compressionArtifacts,
+        compressionArtifactsQuality: Float(json["compressionArtifactsQuality"] as? Double ?? 43.1),
+        maskBlur: Float(json["maskBlur"] as? Double ?? 1.5),
+        maskBlurOutset: Int32(json["maskBlurOutset"] as? Int ?? 0),
+        preserveOriginalAfterInpaint: json["preserveOriginalAfterInpaint"] as? Bool ?? true,
+        sharpness: Float(json["sharpness"] as? Double ?? 0.0),
+        stochasticSamplingGamma: Float(json["stochasticSamplingGamma"] as? Double ?? 0.3),
+        aestheticScore: Float(json["aestheticScore"] as? Double ?? 6.0),
+        negativeAestheticScore: Float(json["negativeAestheticScore"] as? Double ?? 2.5),
+        negativePromptForImagePrior: json["negativePromptForImagePrior"] as? Bool ?? true,
+        imagePriorSteps: Int32(json["imagePriorSteps"] as? Int ?? 5),
+        cropTop: Int32(json["cropTop"] as? Int ?? 0),
+        cropLeft: Int32(json["cropLeft"] as? Int ?? 0),
+        originalImageHeight: Int32(json["originalImageHeight"] as? Int ?? 0),
+        originalImageWidth: Int32(json["originalImageWidth"] as? Int ?? 0),
+        targetImageHeight: Int32(json["targetImageHeight"] as? Int ?? 0),
+        targetImageWidth: Int32(json["targetImageWidth"] as? Int ?? 0),
+        negativeOriginalImageHeight: Int32(json["negativeOriginalImageHeight"] as? Int ?? 0),
+        negativeOriginalImageWidth: Int32(json["negativeOriginalImageWidth"] as? Int ?? 0),
+        upscalerScaleFactor: Int32(json["upscalerScaleFactor"] as? Int ?? 0),
+        resolutionDependentShift: json["resolutionDependentShift"] as? Bool ?? false,
+        t5TextEncoder: json["t5TextEncoder"] as? Bool ?? true,
+        separateClipL: json["separateClipL"] as? Bool ?? false,
+        separateOpenClipG: json["separateOpenClipG"] as? Bool ?? false,
+        separateT5: json["separateT5"] as? Bool ?? false,
+        tiledDiffusion: json["tiledDiffusion"] as? Bool ?? false,
+        diffusionTileWidth: Int32(json["diffusionTileWidth"] as? Int ?? 1024),
+        diffusionTileHeight: Int32(json["diffusionTileHeight"] as? Int ?? 1024),
+        diffusionTileOverlap: Int32(json["diffusionTileOverlap"] as? Int ?? 128),
+        tiledDecoding: json["tiledDecoding"] as? Bool ?? false,
+        decodingTileWidth: Int32(json["decodingTileWidth"] as? Int ?? 640),
+        decodingTileHeight: Int32(json["decodingTileHeight"] as? Int ?? 640),
+        decodingTileOverlap: Int32(json["decodingTileOverlap"] as? Int ?? 128),
+        hiresFix: json["hiresFix"] as? Bool ?? false,
+        hiresFixWidth: Int32(json["hiresFixWidth"] as? Int ?? 1024),
+        hiresFixHeight: Int32(json["hiresFixHeight"] as? Int ?? 1024),
+        hiresFixStrength: Float(json["hiresFixStrength"] as? Double ?? 0.7),
+        stage2Steps: Int32(json["stage2Steps"] as? Int ?? 10),
+        stage2Guidance: Float(json["stage2Guidance"] as? Double ?? 1.0),
+        stage2Shift: Float(json["stage2Shift"] as? Double ?? 1.0),
+        teaCache: json["teaCache"] as? Bool ?? false,
+        teaCacheStart: Int32(json["teaCacheStart"] as? Int ?? 5),
+        teaCacheEnd: Int32(json["teaCacheEnd"] as? Int ?? -1),
+        teaCacheThreshold: Float(json["teaCacheThreshold"] as? Double ?? 0.2),
+        teaCacheMaxSkipSteps: Int32(json["teaCacheMaxSkipSteps"] as? Int ?? 3),
+        causalInferenceEnabled: json["causalInferenceEnabled"] as? Bool ?? false,
+        causalInference: Int32(json["causalInference"] as? Int ?? 0),
+        causalInferencePad: Int32(json["causalInferencePad"] as? Int ?? 0),
+        fps: Int32(json["fps"] as? Int ?? 5),
+        motionScale: Int32(json["motionScale"] as? Int ?? 127),
+        guidingFrameNoise: Float(json["guidingFrameNoise"] as? Double ?? 0.02),
+        startFrameGuidance: Float(json["startFrameGuidance"] as? Double ?? 1.0),
+        numFrames: Int32(json["numFrames"] as? Int ?? 14),
         refinerModel: refinerModel,
-        refinerStart: refinerStart,
-        zeroNegativePrompt: zeroNegativePrompt,
-        seedMode: seedMode
+        refinerStart: Float(json["refinerStart"] as? Double ?? 0.85),
+        zeroNegativePrompt: json["zeroNegativePrompt"] as? Bool ?? false,
+        upscaler: upscaler,
+        faceRestoration: faceRestoration,
+        clipLText: clipLText,
+        openClipGText: openClipGText,
+        seedMode: Int32(json["seedMode"] as? Int ?? 2)
     )
-    
+
     return config
 }
 
-/// Map DrawThings sampler integer to SamplerType enum
-/// Based on SamplerType enum from DrawThings FlatBuffers schema
-private func mapSamplerIntToEnum(_ samplerInt: Int) -> SamplerType {
-    switch samplerInt {
-    case 0: return .dpmpp2mkarras
-    case 1: return .eulera
-    case 2: return .ddim
-    case 3: return .plms
-    case 4: return .dpmppsdekarras
-    case 5: return .unipc
-    case 6: return .lcm
-    case 7: return .eulerasubstep
-    case 8: return .dpmppsdesubstep
-    case 9: return .tcd
-    case 10: return .euleratrailing
-    case 11: return .dpmppsdetrailing
-    case 12: return .dpmpp2mays
-    case 13: return .euleraays
-    case 14: return .dpmppsdeays
-    case 15: return .dpmpp2mtrailing
-    case 16: return .ddimtrailing
-    case 17: return .unipctrailing
-    case 18: return .unipcays
-    default: return .dpmpp2mkarras  // Default to case 0
+// MARK: - Enum Mapping Helpers
+
+/// Map LoRA mode string from Draw Things JSON to LoRAMode enum
+private func mapLoRAModeStringToEnum(_ mode: String) -> LoRAMode {
+    switch mode.lowercased() {
+    case "all": return .all
+    case "base": return .base
+    case "refiner": return .refiner
+    default: return .all
     }
 }
 
-/// Map DrawThings LoRA mode integer to LoRAMode enum
-/// Based on LoRAMode enum from DrawThings FlatBuffers schema
-private func mapLoRAModeIntToEnum(_ modeInt: Int) -> LoRAMode {
-    switch modeInt {
-    case 0: return .all
-    case 1: return .base
-    case 2: return .refiner
-    default: return .all  // Default to case 0
+/// Map control importance string from Draw Things JSON to ControlMode enum
+private func mapControlModeStringToEnum(_ importance: String) -> ControlMode {
+    switch importance.lowercased() {
+    case "balanced": return .balanced
+    case "prompt": return .prompt
+    case "control": return .control
+    default: return .balanced
     }
 }
 
-/// Map DrawThings control mode integer to ControlMode enum
-/// Based on ControlMode enum from DrawThings FlatBuffers schema
-private func mapControlModeIntToEnum(_ modeInt: Int) -> ControlMode {
-    switch modeInt {
-    case 0: return .balanced
-    case 1: return .prompt
-    case 2: return .control
-    default: return .balanced  // Default to case 0
+/// Map compression artifacts string from Draw Things JSON to CompressionMethod enum
+private func mapCompressionMethodStringToEnum(_ method: String) -> CompressionMethod {
+    switch method.lowercased() {
+    case "disabled": return .disabled
+    case "h264": return .h264
+    case "h265": return .h265
+    case "jpeg": return .jpeg
+    default: return .disabled
     }
 }
