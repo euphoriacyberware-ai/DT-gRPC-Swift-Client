@@ -87,6 +87,12 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         case "ernieimage", "ernie_image":
             // Ernie Image uses the 32-channel Flux 2 coefficients upstream.
             return .flux2
+        case "ideogram4", "ideogram_4":
+            // Ideogram 4 uses the 32-channel Flux 2 coefficients upstream.
+            return .flux2
+        case "krea2", "krea_2":
+            // Krea 2 uses the 16-channel Qwen/Wan 2.1 coefficients upstream.
+            return .qwen
         case "ltx2":
             return .ltx2
         case "ltx2_3", "ltx2.3":
@@ -136,8 +142,14 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         if lowercased.contains("ltx2") || lowercased.contains("ltx-2") || lowercased.contains("ltx_2") {
             return .ltx2
         }
+        if lowercased.contains("ideogram") {
+            return .flux2
+        }
         if lowercased.contains("ernie") {
             return .flux2
+        }
+        if lowercased.contains("krea") {
+            return .qwen
         }
         if lowercased.contains("seedvr") {
             return .flux

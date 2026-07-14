@@ -119,8 +119,8 @@ let previewImage = try ImageHelpers.dtTensorToImage(previewData, modelFamily: fa
 | `.sdxl` | SDXL Base, SDXL Refiner, SSD-1B, PixArt, AuraFlow | 4 | — |
 | `.sd3` | Stable Diffusion 3, SD3 Large | 16 | — |
 | `.flux` | Flux.1, HiDream-I1, SeedVR2 | 16 | — |
-| `.flux2` | Flux 2 (9B, 4B), Ernie Image | 32 | — |
-| `.qwen` | Qwen Image, Qwen Image Edit, Cosmos 2.5 | 16 | — |
+| `.flux2` | Flux 2 (9B, 4B), Ernie Image, Ideogram 4 | 32 | — |
+| `.qwen` | Qwen Image, Qwen Image Edit, Cosmos 2.5, Krea 2 | 16 | — |
 | `.zImage` | Z Image | 16 | — |
 | `.wan21` | Wan 2.1 (1.3B, 14B) | 16 | 16 |
 | `.wan22` | Wan 2.2 5B | 48 | 16 |
@@ -131,7 +131,7 @@ let previewImage = try ImageHelpers.dtTensorToImage(previewData, modelFamily: fa
 | `.kandinsky` | Kandinsky 2.1 | 4 (OKLab) | — |
 | `.wurstchen` | Würstchen / Stable Cascade | 4 | — |
 
-**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Ernie Image, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively).
+**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Krea 2, Ernie Image, Ideogram 4, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively).
 
 The `nativeFrameRate` property returns the model's native FPS for video models, or `nil` for image-only models:
 
