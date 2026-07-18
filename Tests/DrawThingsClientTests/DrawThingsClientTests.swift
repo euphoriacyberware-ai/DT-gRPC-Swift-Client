@@ -4,6 +4,35 @@ import FlatBuffers
 
 final class DrawThingsClientTests: XCTestCase {
 
+    func testCGImageTensorEncoderMatchesPlatformImageWrapper() throws {
+        let context = try XCTUnwrap(CGContext(
+            data: nil,
+            width: 3,
+            height: 2,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.setFillColor(CGColor(srgbRed: 0.25, green: 0.5, blue: 0.75, alpha: 0.5))
+        context.fill(CGRect(x: 0, y: 0, width: 3, height: 2))
+        let cgImage = try XCTUnwrap(context.makeImage())
+#if os(macOS)
+        let platformImage = NSImage(cgImage: cgImage, size: NSSize(width: 3, height: 2))
+#else
+        let platformImage = UIImage(cgImage: cgImage)
+#endif
+
+        XCTAssertEqual(
+            try ImageHelpers.imageToDTTensor(cgImage, forceRGB: false),
+            try ImageHelpers.imageToDTTensor(platformImage, forceRGB: false)
+        )
+        XCTAssertEqual(
+            try ImageHelpers.imageToDTTensor(cgImage, forceRGB: true),
+            try ImageHelpers.imageToDTTensor(platformImage, forceRGB: true)
+        )
+    }
+
     /// The seed mode must survive `toFlatBufferData()` unchanged — regression for a
     /// bug that collapsed scalealike(2) and nvidiagpucompatible(3) to
     /// torchcpucompatible, which changes the initial noise and breaks reproduction.
