@@ -479,7 +479,13 @@ public struct ImageHelpers {
         guard let cgImage = image.cgImageRepresentation else {
             throw ImageError.invalidImage
         }
+        return try imageToDTTensor(cgImage, forceRGB: forceRGB)
+    }
 
+    /// Convert Sendable Core Graphics pixels to DTTensor format. This is the
+    /// executor-neutral primitive used by queues that must keep full-image
+    /// conversion off their UI actor.
+    public static func imageToDTTensor(_ cgImage: CGImage, forceRGB: Bool = false) throws -> Data {
         let width = cgImage.width
         let height = cgImage.height
 
