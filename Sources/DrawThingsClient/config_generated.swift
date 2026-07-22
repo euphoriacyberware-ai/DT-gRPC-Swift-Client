@@ -121,6 +121,18 @@ public enum CompressionMethod: Int8, Enum, Verifiable {
 }
 
 
+public enum ColorCalibration: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case disabled = 0
+  case lab = 1
+
+  public static var max: ColorCalibration { return .lab }
+  public static var min: ColorCalibration { return .disabled }
+}
+
+
 public struct Control: FlatBufferObject, Verifiable, ObjectAPIPacker {
 
   static func validateVersion() { FlatBuffersVersion_25_9_23() }
@@ -477,6 +489,8 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     case cfgZeroInitSteps = 170
     case compressionArtifacts = 172
     case compressionArtifactsQuality = 174
+    case colorCalibration = 176
+    case expandPromptToJson = 178
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -577,7 +591,9 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
   public var cfgZeroInitSteps: Int32 { let o = _accessor.offset(VTOFFSET.cfgZeroInitSteps.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
   public var compressionArtifacts: CompressionMethod { let o = _accessor.offset(VTOFFSET.compressionArtifacts.v); return o == 0 ? .disabled : CompressionMethod(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .disabled }
   public var compressionArtifactsQuality: Float32 { let o = _accessor.offset(VTOFFSET.compressionArtifactsQuality.v); return o == 0 ? 43.1 : _accessor.readBuffer(of: Float32.self, at: o) }
-  public static func startGenerationConfiguration(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 86) }
+  public var colorCalibration: ColorCalibration { let o = _accessor.offset(VTOFFSET.colorCalibration.v); return o == 0 ? .disabled : ColorCalibration(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .disabled }
+  public var expandPromptToJson: Bool { let o = _accessor.offset(VTOFFSET.expandPromptToJson.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startGenerationConfiguration(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 88) }
   public static func add(id: Int64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: id, def: 0, at: VTOFFSET.id.p) }
   public static func add(startWidth: UInt16, _ fbb: inout FlatBufferBuilder) { fbb.add(element: startWidth, def: 0, at: VTOFFSET.startWidth.p) }
   public static func add(startHeight: UInt16, _ fbb: inout FlatBufferBuilder) { fbb.add(element: startHeight, def: 0, at: VTOFFSET.startHeight.p) }
@@ -677,6 +693,9 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
   public static func add(cfgZeroInitSteps: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cfgZeroInitSteps, def: 0, at: VTOFFSET.cfgZeroInitSteps.p) }
   public static func add(compressionArtifacts: CompressionMethod, _ fbb: inout FlatBufferBuilder) { fbb.add(element: compressionArtifacts.rawValue, def: 0, at: VTOFFSET.compressionArtifacts.p) }
   public static func add(compressionArtifactsQuality: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: compressionArtifactsQuality, def: 0, at: VTOFFSET.compressionArtifactsQuality.p) }
+  public static func add(colorCalibration: ColorCalibration, _ fbb: inout FlatBufferBuilder) { fbb.add(element: colorCalibration.rawValue, def: 0, at: VTOFFSET.colorCalibration.p) }
+  public static func add(expandPromptToJson: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: expandPromptToJson, def: false,
+   at: VTOFFSET.expandPromptToJson.p) }
   public static func endGenerationConfiguration(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createGenerationConfiguration(
     _ fbb: inout FlatBufferBuilder,
@@ -763,7 +782,9 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     cfgZeroStar: Bool = false,
     cfgZeroInitSteps: Int32 = 0,
     compressionArtifacts: CompressionMethod = .disabled,
-    compressionArtifactsQuality: Float32 = 43.1
+    compressionArtifactsQuality: Float32 = 43.1,
+    colorCalibration: ColorCalibration = .disabled,
+    expandPromptToJson: Bool = false
   ) -> Offset {
     let __start = GenerationConfiguration.startGenerationConfiguration(&fbb)
     GenerationConfiguration.add(id: id, &fbb)
@@ -850,6 +871,8 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     GenerationConfiguration.add(cfgZeroInitSteps: cfgZeroInitSteps, &fbb)
     GenerationConfiguration.add(compressionArtifacts: compressionArtifacts, &fbb)
     GenerationConfiguration.add(compressionArtifactsQuality: compressionArtifactsQuality, &fbb)
+    GenerationConfiguration.add(colorCalibration: colorCalibration, &fbb)
+    GenerationConfiguration.add(expandPromptToJson: expandPromptToJson, &fbb)
     return GenerationConfiguration.endGenerationConfiguration(&fbb, start: __start)
   }
 
@@ -1014,6 +1037,8 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     GenerationConfiguration.add(cfgZeroInitSteps: obj.cfgZeroInitSteps, &builder)
     GenerationConfiguration.add(compressionArtifacts: obj.compressionArtifacts, &builder)
     GenerationConfiguration.add(compressionArtifactsQuality: obj.compressionArtifactsQuality, &builder)
+    GenerationConfiguration.add(colorCalibration: obj.colorCalibration, &builder)
+    GenerationConfiguration.add(expandPromptToJson: obj.expandPromptToJson, &builder)
     return GenerationConfiguration.endGenerationConfiguration(&builder, start: __root)
   }
 
@@ -1103,6 +1128,8 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     try _v.visit(field: VTOFFSET.cfgZeroInitSteps.p, fieldName: "cfgZeroInitSteps", required: false, type: Int32.self)
     try _v.visit(field: VTOFFSET.compressionArtifacts.p, fieldName: "compressionArtifacts", required: false, type: CompressionMethod.self)
     try _v.visit(field: VTOFFSET.compressionArtifactsQuality.p, fieldName: "compressionArtifactsQuality", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.colorCalibration.p, fieldName: "colorCalibration", required: false, type: ColorCalibration.self)
+    try _v.visit(field: VTOFFSET.expandPromptToJson.p, fieldName: "expandPromptToJson", required: false, type: Bool.self)
     _v.finish()
   }
 }
@@ -1193,6 +1220,8 @@ public class GenerationConfigurationT: NativeObject {
   public var cfgZeroInitSteps: Int32
   public var compressionArtifacts: CompressionMethod
   public var compressionArtifactsQuality: Float32
+  public var colorCalibration: ColorCalibration
+  public var expandPromptToJson: Bool
 
   public init(_ _t: inout GenerationConfiguration) {
     id = _t.id
@@ -1287,6 +1316,8 @@ public class GenerationConfigurationT: NativeObject {
     cfgZeroInitSteps = _t.cfgZeroInitSteps
     compressionArtifacts = _t.compressionArtifacts
     compressionArtifactsQuality = _t.compressionArtifactsQuality
+    colorCalibration = _t.colorCalibration
+    expandPromptToJson = _t.expandPromptToJson
   }
 
   public init() {
@@ -1366,6 +1397,8 @@ public class GenerationConfigurationT: NativeObject {
     cfgZeroInitSteps = 0
     compressionArtifacts = .disabled
     compressionArtifactsQuality = 43.1
+    colorCalibration = .disabled
+    expandPromptToJson = false
   }
 
   public func serialize() -> ByteBuffer { return serialize(type: GenerationConfiguration.self) }

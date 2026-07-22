@@ -75,6 +75,12 @@ public struct DrawThingsConfiguration: Sendable {
     public var compressionArtifacts: CompressionMethod
     public var compressionArtifactsQuality: Float
 
+    // Color calibration
+    public var colorCalibration: ColorCalibration
+
+    // Prompt expansion
+    public var expandPromptToJson: Bool
+
     // Mask/Inpaint parameters
     public var maskBlur: Float
     public var maskBlurOutset: Int32
@@ -200,6 +206,8 @@ public struct DrawThingsConfiguration: Sendable {
         cfgZeroInitSteps: Int32 = 0,
         compressionArtifacts: CompressionMethod = .disabled,
         compressionArtifactsQuality: Float = 43.1,
+        colorCalibration: ColorCalibration = .disabled,
+        expandPromptToJson: Bool = false,
         maskBlur: Float = 1.5,
         maskBlurOutset: Int32 = 0,
         preserveOriginalAfterInpaint: Bool = true,
@@ -285,6 +293,8 @@ public struct DrawThingsConfiguration: Sendable {
         self.cfgZeroInitSteps = cfgZeroInitSteps
         self.compressionArtifacts = compressionArtifacts
         self.compressionArtifactsQuality = compressionArtifactsQuality
+        self.colorCalibration = colorCalibration
+        self.expandPromptToJson = expandPromptToJson
         self.maskBlur = maskBlur
         self.maskBlurOutset = maskBlurOutset
         self.preserveOriginalAfterInpaint = preserveOriginalAfterInpaint
@@ -392,6 +402,12 @@ public struct DrawThingsConfiguration: Sendable {
         // Compression parameters
         configT.compressionArtifacts = self.compressionArtifacts
         configT.compressionArtifactsQuality = self.compressionArtifactsQuality
+
+        // Color calibration
+        configT.colorCalibration = self.colorCalibration
+
+        // Prompt expansion
+        configT.expandPromptToJson = self.expandPromptToJson
 
         // Mask/Inpaint parameters
         configT.maskBlur = maskBlur
