@@ -15,6 +15,7 @@
 //    "clipLText": null,
 //    "clipSkip": 1,
 //    "clipWeight": 1,
+//    "colorCalibration": "disabled",
 //    "compressionArtifacts": "disabled",
 //    "compressionArtifactsQuality": 43.1,
 //    "controls": [],
@@ -26,6 +27,7 @@
 //    "diffusionTileHeight": 1024,
 //    "diffusionTileOverlap": 128,
 //    "diffusionTileWidth": 1024,
+//    "expandPromptToJson": false,
 //    "faceRestoration": null,
 //    "fps": 5,
 //    "guidanceEmbed": 3.5,
@@ -78,6 +80,7 @@
 //    "steps": 8,
 //    "stochasticSamplingGamma": 0.3,
 //    "strength": 1,
+//    "t5Text": null,
 //    "t5TextEncoder": true,
 //    "targetImageHeight": 1280,
 //    "targetImageWidth": 1280,
@@ -190,6 +193,16 @@ func configurationFromJSON(_ jsonString: String) -> DrawThingsConfiguration? {
         compressionArtifacts = .disabled
     }
 
+    // Color calibration - DT exports as string ("disabled", "lab")
+    let colorCalibration: ColorCalibration
+    if let calStr = json["colorCalibration"] as? String {
+        colorCalibration = mapColorCalibrationStringToEnum(calStr)
+    } else if let calInt = json["colorCalibration"] as? Int {
+        colorCalibration = ColorCalibration(rawValue: Int8(calInt)) ?? .disabled
+    } else {
+        colorCalibration = .disabled
+    }
+
     // Optional string fields - treat empty strings as nil
     let refinerModel: String? = {
         guard let s = json["refinerModel"] as? String, !s.isEmpty else { return nil }
@@ -207,6 +220,7 @@ func configurationFromJSON(_ jsonString: String) -> DrawThingsConfiguration? {
     // Separate text encoder prompts
     let clipLText = json["clipLText"] as? String
     let openClipGText = json["openClipGText"] as? String
+    let t5Text = json["t5Text"] as? String
 
     let config = DrawThingsConfiguration(
         width: Int32(width),
@@ -231,6 +245,8 @@ func configurationFromJSON(_ jsonString: String) -> DrawThingsConfiguration? {
         cfgZeroInitSteps: Int32(json["cfgZeroInitSteps"] as? Int ?? 0),
         compressionArtifacts: compressionArtifacts,
         compressionArtifactsQuality: Float(json["compressionArtifactsQuality"] as? Double ?? 43.1),
+        colorCalibration: colorCalibration,
+        expandPromptToJson: json["expandPromptToJson"] as? Bool ?? false,
         maskBlur: Float(json["maskBlur"] as? Double ?? 1.5),
         maskBlurOutset: Int32(json["maskBlurOutset"] as? Int ?? 0),
         preserveOriginalAfterInpaint: json["preserveOriginalAfterInpaint"] as? Bool ?? true,
@@ -289,6 +305,7 @@ func configurationFromJSON(_ jsonString: String) -> DrawThingsConfiguration? {
         faceRestoration: faceRestoration,
         clipLText: clipLText,
         openClipGText: openClipGText,
+        t5Text: t5Text,
         seedMode: Int32(json["seedMode"] as? Int ?? 2)
     )
 
@@ -314,6 +331,15 @@ private func mapControlModeStringToEnum(_ importance: String) -> ControlMode {
     case "prompt": return .prompt
     case "control": return .control
     default: return .balanced
+    }
+}
+
+/// Map color calibration string from Draw Things JSON to ColorCalibration enum
+private func mapColorCalibrationStringToEnum(_ calibration: String) -> ColorCalibration {
+    switch calibration.lowercased() {
+    case "disabled": return .disabled
+    case "lab": return .lab
+    default: return .disabled
     }
 }
 

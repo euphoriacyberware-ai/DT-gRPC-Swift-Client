@@ -202,6 +202,7 @@ Draw Things can export its configuration as JSON. Here is a complete example:
   "clipLText": null,
   "clipSkip": 1,
   "clipWeight": 1,
+  "colorCalibration": "disabled",
   "compressionArtifacts": "disabled",
   "compressionArtifactsQuality": 43.1,
   "controls": [],
@@ -213,6 +214,7 @@ Draw Things can export its configuration as JSON. Here is a complete example:
   "diffusionTileHeight": 1024,
   "diffusionTileOverlap": 128,
   "diffusionTileWidth": 1024,
+  "expandPromptToJson": false,
   "faceRestoration": null,
   "fps": 5,
   "guidanceEmbed": 3.5,
@@ -265,6 +267,7 @@ Draw Things can export its configuration as JSON. Here is a complete example:
   "steps": 8,
   "stochasticSamplingGamma": 0.3,
   "strength": 1,
+  "t5Text": null,
   "t5TextEncoder": true,
   "targetImageHeight": 1280,
   "targetImageWidth": 1280,
@@ -317,6 +320,13 @@ Several fields are exported as strings in JSON but map to integer enums in the F
 | `"balanced"` | `0` |
 | `"prompt"` | `1` |
 | `"control"` | `2` |
+
+**Color calibration** (`colorCalibration`):
+
+| JSON String | Enum Value |
+|-------------|-----------|
+| `"disabled"` | `0` |
+| `"lab"` | `1` |
 
 **Compression artifacts** (`compressionArtifacts`):
 
