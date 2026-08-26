@@ -57,6 +57,67 @@ final class DrawThingsClientTests: XCTestCase {
         }
     }
 
+    /// Regression: FlatBuffers omits any scalar equal to its schema default, and
+    /// the Draw Things schema defaults these to true / non-zero. Without
+    /// `serializeDefaults: true` the encoder silently dropped them, the server
+    /// read back its own default, and generation diverged from the app for an
+    /// identical config + seed.
+    func testSchemaDefaultValuedFieldsSurviveEncoding() throws {
+        let config = DrawThingsConfiguration(
+            width: 1024, height: 1024, steps: 8,
+            model: "z_image_turbo_1.0_q8p.ckpt", guidanceScale: 1.0,
+            shift: 3.0,
+            imageGuidanceScale: 0.0,
+            clipWeight: 0.0,
+            guidanceEmbed: 0.0,
+            speedUpWithGuidanceEmbed: false,
+            preserveOriginalAfterInpaint: false,
+            stochasticSamplingGamma: 0.0,
+            negativePromptForImagePrior: false,
+            resolutionDependentShift: false,
+            t5TextEncoder: false,
+            teaCacheEnd: 0,
+            causalInference: 0
+        )
+        let data = try config.toFlatBufferData()
+        var buffer = ByteBuffer(data: data)
+        let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
+        let root = GenerationConfiguration(buffer, o: rootOffset)
+
+        XCTAssertFalse(root.resolutionDependentShift)
+        XCTAssertFalse(root.t5TextEncoder)
+        XCTAssertFalse(root.speedUpWithGuidanceEmbed)
+        XCTAssertFalse(root.preserveOriginalAfterInpaint)
+        XCTAssertFalse(root.negativePromptForImagePrior)
+        XCTAssertEqual(root.imageGuidanceScale, 0.0)
+        XCTAssertEqual(root.clipWeight, 0.0)
+        XCTAssertEqual(root.guidanceEmbed, 0.0)
+        XCTAssertEqual(root.stochasticSamplingGamma, 0.0)
+        XCTAssertEqual(root.teaCacheEnd, 0)
+        XCTAssertEqual(root.causalInference, 0)
+        XCTAssertEqual(root.shift, 3.0)
+    }
+
+    /// The app sends 0 for unset SDXL micro-conditioning sizes; we must not
+    /// substitute the start size, or our request differs from the UI's.
+    func testUnsetConditioningSizesArePassedThroughAsZero() throws {
+        let config = DrawThingsConfiguration(
+            width: 1024, height: 1024, steps: 8,
+            model: "z_image_turbo_1.0_q8p.ckpt", guidanceScale: 1.0
+        )
+        let data = try config.toFlatBufferData()
+        var buffer = ByteBuffer(data: data)
+        let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
+        let root = GenerationConfiguration(buffer, o: rootOffset)
+
+        XCTAssertEqual(root.originalImageWidth, 0)
+        XCTAssertEqual(root.originalImageHeight, 0)
+        XCTAssertEqual(root.targetImageWidth, 0)
+        XCTAssertEqual(root.targetImageHeight, 0)
+        XCTAssertEqual(root.negativeOriginalImageWidth, 0)
+        XCTAssertEqual(root.negativeOriginalImageHeight, 0)
+    }
+
     func testConfigurationCreation() throws {
         let config = DrawThingsConfiguration(
             width: 512,
