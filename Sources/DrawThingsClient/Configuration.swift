@@ -30,13 +30,17 @@ public struct ControlConfig: Sendable {
     public let guidanceStart: Float
     public let guidanceEnd: Float
     public let controlMode: ControlMode
+    /// Matches the per-model value the app looks up in its ControlNet zoo. False
+    /// for every stock control except Shuffle, which needs true.
+    public let globalAveragePooling: Bool
 
-    public init(file: String, weight: Float = 1.0, guidanceStart: Float = 0.0, guidanceEnd: Float = 1.0, controlMode: ControlMode = .balanced) {
+    public init(file: String, weight: Float = 1.0, guidanceStart: Float = 0.0, guidanceEnd: Float = 1.0, controlMode: ControlMode = .balanced, globalAveragePooling: Bool = false) {
         self.file = file
         self.weight = weight
         self.guidanceStart = guidanceStart
         self.guidanceEnd = guidanceEnd
         self.controlMode = controlMode
+        self.globalAveragePooling = globalAveragePooling
     }
 }
 
@@ -427,12 +431,16 @@ public struct DrawThingsConfiguration: Sendable {
         // Crop/Size parameters
         configT.cropTop = Int32(cropTop)
         configT.cropLeft = Int32(cropLeft)
-        configT.originalImageHeight = UInt32(originalImageHeight > 0 ? originalImageHeight : height)
-        configT.originalImageWidth = UInt32(originalImageWidth > 0 ? originalImageWidth : width)
-        configT.targetImageHeight = UInt32(targetImageHeight > 0 ? targetImageHeight : height)
-        configT.targetImageWidth = UInt32(targetImageWidth > 0 ? targetImageWidth : width)
-        configT.negativeOriginalImageHeight = UInt32(negativeOriginalImageHeight > 0 ? negativeOriginalImageHeight : height)
-        configT.negativeOriginalImageWidth = UInt32(negativeOriginalImageWidth > 0 ? negativeOriginalImageWidth : width)
+        // Pass these through verbatim - do NOT substitute width/height when they
+        // are 0. The Draw Things app sends 0 for an unset SDXL micro-conditioning
+        // size and lets the server decide; substituting the start size here makes
+        // our request differ from the UI's for an otherwise identical config.
+        configT.originalImageHeight = UInt32(max(0, originalImageHeight))
+        configT.originalImageWidth = UInt32(max(0, originalImageWidth))
+        configT.targetImageHeight = UInt32(max(0, targetImageHeight))
+        configT.targetImageWidth = UInt32(max(0, targetImageWidth))
+        configT.negativeOriginalImageHeight = UInt32(max(0, negativeOriginalImageHeight))
+        configT.negativeOriginalImageWidth = UInt32(max(0, negativeOriginalImageWidth))
 
         // Upscaler parameters
         configT.upscalerScaleFactor = UInt8(upscalerScaleFactor)
@@ -512,7 +520,7 @@ public struct DrawThingsConfiguration: Sendable {
             controlT.guidanceEnd = control.guidanceEnd
             controlT.controlMode = control.controlMode
             controlT.noPrompt = false
-            controlT.globalAveragePooling = false
+            controlT.globalAveragePooling = control.globalAveragePooling
             controlT.downSamplingRate = 1.0
             controlT.targetBlocks = []
             DrawThingsClientLogger.debug("Added ControlNet control: \(control.file)")
@@ -547,8 +555,18 @@ public struct DrawThingsConfiguration: Sendable {
             return loraT
         }
 
-        // Pack into FlatBuffer
-        var builder = FlatBufferBuilder(initialSize: 1024)
+        // Pack into FlatBuffer.
+        //
+        // serializeDefaults MUST stay true. FlatBuffers normally omits any
+        // scalar equal to its schema default, and the Draw Things schema has
+        // non-zero/true defaults for ~38 fields (resolutionDependentShift,
+        // t5TextEncoder, speedUpWithGuidanceEmbed, shift, clipSkip,
+        // stochasticSamplingGamma, guidanceEmbed, ...). Without this flag,
+        // asking for `resolutionDependentShift = false` writes nothing and the
+        // server reads back its default `true` - the config we send silently
+        // stops matching the config the caller asked for, and generation
+        // diverges from the Draw Things UI for the same seed.
+        var builder = FlatBufferBuilder(initialSize: 1024, serializeDefaults: true)
         var mutableConfigT = configT
         let offset = GenerationConfiguration.pack(&builder, obj: &mutableConfigT)
         builder.finish(offset: offset)
