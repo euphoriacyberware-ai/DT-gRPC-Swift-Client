@@ -154,16 +154,13 @@ public actor DrawThingsService {
                 return seenHashes.insert(hash).inserted
             }
             
-            // EXPERIMENT (echo-override branch): only send an override when a
-            // caller explicitly supplies one. Previously the client echoed the
-            // server's own model metadata (from echo()) back as an override on
-            // every request; when the server already owns the models (e.g. the
-            // DrawThings app in server mode) that lossy echoed metadata can make
-            // server-mode generation diverge subtly from UI generation for the
-            // same config+seed. Dropping it lets the server use its authoritative
-            // internal model config.
+            // An explicit override from the caller wins; otherwise echo back the
+            // server's own model metadata cached from echo(), so the request
+            // always carries Zoo metadata for the models it references.
             if let override = override {
                 $0.override = override
+            } else if let cachedModels = self.models {
+                $0.override = cachedModels
             }
 
             if let sharedSecret = sharedSecret {

@@ -55,6 +55,7 @@ public class DrawThingsClient: ObservableObject {
         image: PlatformImage? = nil,
         mask: PlatformImage? = nil,
         hints: [HintProto] = [],
+        override: MetadataOverride? = nil,
         sharedSecret: String? = nil
     ) async throws -> [PlatformImage] {
         let resultData = try await callService(
@@ -64,6 +65,7 @@ public class DrawThingsClient: ObservableObject {
             image: image,
             mask: mask,
             hints: hints,
+            override: override,
             sharedSecret: sharedSecret
         )
         return try resultData.map { try ImageHelpers.dtTensorToImage($0) }
@@ -76,6 +78,7 @@ public class DrawThingsClient: ObservableObject {
         image: PlatformImage? = nil,
         mask: PlatformImage? = nil,
         hints: [HintProto] = [],
+        override: MetadataOverride? = nil,
         sharedSecret: String? = nil
     ) async throws -> GenerationOutput {
         var audioBuffers: [AVAudioPCMBuffer] = []
@@ -87,6 +90,7 @@ public class DrawThingsClient: ObservableObject {
             image: image,
             mask: mask,
             hints: hints,
+            override: override,
             sharedSecret: sharedSecret,
             audioHandler: { audioData in
                 if let buffer = try? AudioHelpers.ccvTensorToAudioBuffer(audioData) {
@@ -106,6 +110,7 @@ public class DrawThingsClient: ObservableObject {
         image: PlatformImage?,
         mask: PlatformImage?,
         hints: [HintProto] = [],
+        override: MetadataOverride? = nil,
         sharedSecret: String? = nil,
         audioHandler: @escaping (Data) async -> Void = { _ in }
     ) async throws -> [Data] {
@@ -136,6 +141,7 @@ public class DrawThingsClient: ObservableObject {
             image: imageData,
             mask: maskData,
             hints: hints,
+            override: override,
             sharedSecret: sharedSecret,
             progressHandler: { [weak self] signpost in
                 await MainActor.run {

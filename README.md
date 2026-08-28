@@ -400,7 +400,7 @@ This library provides two API levels:
 For most use cases, start with `DrawThingsClient`. Use `DrawThingsService` when you need:
 - Progress callbacks with preview images
 - Custom handling of raw tensor data
-- Access to all generation parameters (contents, override, scaleFactor)
+- Access to all generation parameters (contents, scaleFactor)
 
 ### Basic Usage
 
@@ -993,8 +993,8 @@ swift run
 
 - `init(address: String, useTLS: Bool = true)`: Create a new client
 - `connect() async`: Connect to the Draw Things server
-- `generateImage(prompt:negativePrompt:configuration:image:mask:hints:sharedSecret:) async throws -> [PlatformImage]`: Generate images with progress tracking
-- `generateImageAndAudio(prompt:negativePrompt:configuration:image:mask:sharedSecret:) async throws -> GenerationOutput`: Generate images and audio (LTX-2)
+- `generateImage(prompt:negativePrompt:configuration:image:mask:hints:override:sharedSecret:) async throws -> [PlatformImage]`: Generate images with progress tracking
+- `generateImageAndAudio(prompt:negativePrompt:configuration:image:mask:hints:override:sharedSecret:) async throws -> GenerationOutput`: Generate images and audio (LTX-2)
 - `@Published var isConnected`: Connection status
 - `@Published var currentProgress`: Current generation progress
 
@@ -1003,6 +1003,17 @@ swift run
 - `echo(name:) async throws -> EchoReply`: Server health check
 - `generateImage(prompt:negativePrompt:configuration:image:mask:hints:contents:override:scaleFactor:sharedSecret:progressHandler:previewHandler:audioHandler:) async throws -> [Data]`: Generate images with full control
 - `checkFilesExist(files:filesWithHash:) async throws -> FileExistenceResponse`: Check file existence
+
+#### Model metadata (`override`)
+
+`override` carries `MetadataOverride` — the Zoo metadata blobs (`models`, `loras`, `controlNets`,
+`textualInversions`, `upscalers`) describing the models a request refers to. Both `DrawThingsClient`
+and `DrawThingsService` accept it, and it defaults to `nil`.
+
+When you pass `nil`, the client echoes back the server's own metadata, cached from the first
+`echo()` call, so requests always carry model metadata. Supply an explicit `MetadataOverride`
+only when you need to describe models the server does not already know about — it replaces the
+echoed metadata rather than merging with it.
 
 ### Configuration
 
