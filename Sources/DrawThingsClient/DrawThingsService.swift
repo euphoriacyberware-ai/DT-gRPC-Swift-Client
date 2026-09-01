@@ -55,6 +55,11 @@ public actor DrawThingsService {
 
         self.client = ImageGenerationServiceClient(channel: channel)
     }
+
+    /// The model metadata from the last echo() response. Exposed so callers
+    /// can inspect server capabilities; **not** echoed back automatically
+    /// during generation — see ``generateImage`` for why.
+    public var cachedModels: MetadataOverride? { models }
     
     deinit {
         try? channel.close().wait()
@@ -103,11 +108,11 @@ public actor DrawThingsService {
         audioHandler: @escaping (Data) async -> Void = { _ in }
     ) async throws -> [Data] {
         
-        // Ensure we have models metadata
+        // Ensure we have models metadata (for connection validation)
         if self.models == nil {
             _ = try await echo(sharedSecret: sharedSecret)
         }
-        
+
         let request = ImageGenerationRequest.with {
             $0.scaleFactor = scaleFactor
             $0.user = ProcessInfo.processInfo.hostName
@@ -153,14 +158,20 @@ public actor DrawThingsService {
                 let hash = Data(SHA256.hash(data: entry))
                 return seenHashes.insert(hash).inserted
             }
-            
-            // An explicit override from the caller wins; otherwise echo back the
-            // server's own model metadata cached from echo(), so the request
-            // always carries Zoo metadata for the models it references.
+
+            // Only send an override when the caller explicitly provides one.
+            //
+            // The server already has its own model specifications in
+            // builtinSpecifications and availableSpecifications. Previously
+            // we echoed the server's cached metadata back, but the JSON
+            // round-trip through FailableDecodable can silently degrade
+            // specification fields (e.g. modifier, objective). Degraded
+            // specs placed in ModelZoo.overrideMapping then shadow the
+            // server's own correct builtins, causing models that rely on
+            // specific modifiers (like .kontext for Flux.2 Klein / Krea 2)
+            // to be compiled incorrectly and produce noise.
             if let override = override {
                 $0.override = override
-            } else if let cachedModels = self.models {
-                $0.override = cachedModels
             }
 
             if let sharedSecret = sharedSecret {
