@@ -555,25 +555,18 @@ public struct DrawThingsConfiguration: Sendable {
             return loraT
         }
 
-        // Pack into FlatBuffer.
-        //
-        // serializeDefaults MUST stay true. FlatBuffers normally omits any
-        // scalar equal to its schema default, and the Draw Things schema has
-        // non-zero/true defaults for ~38 fields (resolutionDependentShift,
-        // t5TextEncoder, speedUpWithGuidanceEmbed, shift, clipSkip,
-        // stochasticSamplingGamma, guidanceEmbed, ...). Without this flag,
-        // asking for `resolutionDependentShift = false` writes nothing and the
-        // server reads back its default `true` - the config we send silently
-        // stops matching the config the caller asked for, and generation
-        // diverges from the Draw Things UI for the same seed.
-        var builder = FlatBufferBuilder(initialSize: 1024, serializeDefaults: true)
+        // Pack into FlatBuffer — match the upstream Draw Things app's
+        // serialization: default FlatBufferBuilder (no serializeDefaults)
+        // and .data for the output.  Fields whose value equals the schema
+        // default are omitted from the wire format; the server reader
+        // returns the same schema default for missing fields, so the
+        // round-trip is lossless.
+        var builder = FlatBufferBuilder(initialSize: 1024)
         var mutableConfigT = configT
         let offset = GenerationConfiguration.pack(&builder, obj: &mutableConfigT)
         builder.finish(offset: offset)
 
-        // Return as Data
-        let bufferPointer = builder.sizedByteArray
-        return Data(bufferPointer)
+        return builder.data
     }
 
     // Map seed mode to FlatBuffer enum. The raw values line up 1:1
