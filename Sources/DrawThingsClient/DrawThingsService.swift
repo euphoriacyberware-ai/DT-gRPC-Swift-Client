@@ -85,6 +85,12 @@ public actor DrawThingsService {
             self.models = response.override
         }
 
+        // Fetch the live model list from the Draw Things API in the
+        // background, so specs for newer models (Krea 2, etc.) that
+        // aren't in the bundled snapshot are available before the
+        // first generation request.
+        Task.detached { await ModelSpecProvider.fetchRemoteSpecs() }
+
         return response
     }
     
@@ -113,16 +119,17 @@ public actor DrawThingsService {
         // to determine the correct version, modifier, objective, and latent
         // space for each model.  Many newer models (Flux.2 Klein 9B, Krea 2,
         // etc.) are NOT in the server's builtinSpecifications — they only
-        // exist in the bundled models.json.  Without the correct spec the
-        // server falls back to SD v1 defaults and produces noise.
+        // exist in the bundled models.json or the live Draw Things API.
+        // Without the correct spec the server falls back to SD v1 defaults
+        // and produces noise.
         //
-        // Priority: explicit caller override > bundled models.json spec >
+        // Priority: explicit caller override > bundled/remote spec >
         // echo-cached server metadata.
-        let effectiveOverride: MetadataOverride? = {
-            if let override = override { return override }
-
-            // Extract the model filename from the FlatBuffer configuration
-            // and look it up in the bundled models.json.
+        let effectiveOverride: MetadataOverride?
+        if let override = override {
+            effectiveOverride = override
+        } else {
+            // Extract the model filename from the FlatBuffer configuration.
             let modelFile: String? = configuration.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> String? in
                 guard buf.count >= 4 else { return nil }
                 let bb = ByteBuffer(
@@ -132,13 +139,23 @@ public actor DrawThingsService {
                 return config.model
             }
 
-            if let modelFile = modelFile, ModelSpecProvider.hasSpec(for: modelFile) {
-                DrawThingsClientLogger.debug("Using bundled model spec for: \(modelFile)")
-                return ModelSpecProvider.overrideForModel(modelFile)
+            if let modelFile = modelFile {
+                // If not in bundled data, ensure the remote fetch has completed.
+                if !ModelSpecProvider.hasSpec(for: modelFile) {
+                    DrawThingsClientLogger.debug("Model \(modelFile) not in bundled specs, awaiting remote fetch")
+                    await ModelSpecProvider.fetchRemoteSpecs()
+                }
+                if ModelSpecProvider.hasSpec(for: modelFile) {
+                    DrawThingsClientLogger.debug("Using model spec for: \(modelFile)")
+                    effectiveOverride = ModelSpecProvider.overrideForModel(modelFile)
+                } else {
+                    DrawThingsClientLogger.debug("No spec found for \(modelFile), using echo cache")
+                    effectiveOverride = self.models
+                }
+            } else {
+                effectiveOverride = self.models
             }
-
-            return self.models
-        }()
+        }
 
         let request = ImageGenerationRequest.with {
             $0.scaleFactor = scaleFactor
