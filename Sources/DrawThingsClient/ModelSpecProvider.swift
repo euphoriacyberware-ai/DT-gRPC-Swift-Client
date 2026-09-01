@@ -67,29 +67,50 @@ enum ModelSpecProvider {
     // MARK: - Lookup
 
     /// Build a ``MetadataOverride`` that includes the specification for
-    /// the given model filename (and optionally LoRA filenames).
+    /// the given model filename and LoRA filenames.
     /// This mirrors ``ImageGeneratorUtils.metadataOverride`` in the upstream app.
+    ///
+    /// For LoRAs not found in the bundled/remote specs, a synthetic
+    /// spec is created using the model's version so the server can
+    /// load them.  The server's ``LoRAZoo.overrideMapping`` must contain
+    /// an entry for each LoRA or it silently skips loading.
     static func overrideForModel(_ modelFile: String, loraFiles: [String] = []) -> MetadataOverride {
         lock.lock()
-        var specs = [[String: Any]]()
+        var modelSpecs = [[String: Any]]()
         if let spec = specsByFile[modelFile] as? [String: Any] {
-            specs.append(spec)
+            modelSpecs.append(spec)
         }
+
+        // Determine the model version string for synthetic LoRA specs.
+        let modelVersion = (modelSpecs.first?["version"] as? String) ?? "v1"
+
+        var loraSpecs = [[String: Any]]()
         for lora in loraFiles {
             if let spec = specsByFile[lora] as? [String: Any] {
-                specs.append(spec)
+                // Known LoRA — use full spec from bundled/remote data.
+                loraSpecs.append(spec)
+            } else {
+                // Custom/unknown LoRA — create a minimal spec so the
+                // server's LoRAZoo.overrideMapping has an entry for it.
+                // The essential fields are file, name, version, and prefix.
+                loraSpecs.append([
+                    "file": lora,
+                    "name": lora,
+                    "prefix": "",
+                    "version": modelVersion,
+                ])
             }
         }
         lock.unlock()
 
         var override = MetadataOverride()
-        if !specs.isEmpty {
-            // Re-serialize just the matched specs as a JSON array.
-            // models.json is already in snake_case, which is what the server's
-            // JSONDecoder (with .convertFromSnakeCase) expects.
-            if let data = try? JSONSerialization.data(withJSONObject: specs) {
-                override.models = data
-            }
+        if !modelSpecs.isEmpty,
+           let data = try? JSONSerialization.data(withJSONObject: modelSpecs) {
+            override.models = data
+        }
+        if !loraSpecs.isEmpty,
+           let data = try? JSONSerialization.data(withJSONObject: loraSpecs) {
+            override.loras = data
         }
         return override
     }

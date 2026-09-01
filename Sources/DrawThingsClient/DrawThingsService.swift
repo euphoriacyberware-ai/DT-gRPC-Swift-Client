@@ -129,14 +129,20 @@ public actor DrawThingsService {
         if let override = override {
             effectiveOverride = override
         } else {
-            // Extract the model filename from the FlatBuffer configuration.
-            let modelFile: String? = configuration.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> String? in
-                guard buf.count >= 4 else { return nil }
+            // Extract the model filename and LoRA filenames from the FlatBuffer configuration.
+            let (modelFile, loraFiles): (String?, [String]) = configuration.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> (String?, [String]) in
+                guard buf.count >= 4 else { return (nil, []) }
                 let bb = ByteBuffer(
                     assumingMemoryBound: UnsafeMutableRawPointer(mutating: buf.baseAddress!),
                     capacity: buf.count)
                 let config = GenerationConfiguration(bb, o: Int32(bb.read(def: Int32.self, position: bb.reader)) + Int32(bb.reader))
-                return config.model
+                var loras = [String]()
+                for i in 0..<config.lorasCount {
+                    if let file = config.loras(at: i)?.file {
+                        loras.append(file)
+                    }
+                }
+                return (config.model, loras)
             }
 
             if let modelFile = modelFile {
@@ -146,15 +152,14 @@ public actor DrawThingsService {
                     await ModelSpecProvider.fetchRemoteSpecs()
                 }
                 if ModelSpecProvider.hasSpec(for: modelFile) {
-                    DrawThingsClientLogger.debug("Using model spec for: \(modelFile)")
-                    // Start with the echo-cached override so LoRA, ControlNet,
-                    // textual inversion and upscaler specs are preserved.
-                    // Only replace the models field with our looked-up spec.
+                    DrawThingsClientLogger.debug("Using model spec for: \(modelFile), loras: \(loraFiles)")
+                    // Build override with model spec + LoRA specs (known or synthetic).
+                    // Merge with echo cache for controlNets/textualInversions/upscalers.
                     var merged = self.models ?? MetadataOverride()
-                    DrawThingsClientLogger.debug("  echo cache override: models=\(merged.models.count)B, loras=\(merged.loras.count)B, controlNets=\(merged.controlNets.count)B")
-                    let specOverride = ModelSpecProvider.overrideForModel(modelFile)
+                    let specOverride = ModelSpecProvider.overrideForModel(modelFile, loraFiles: loraFiles)
                     merged.models = specOverride.models
-                    DrawThingsClientLogger.debug("  merged override: models=\(merged.models.count)B, loras=\(merged.loras.count)B")
+                    merged.loras = specOverride.loras
+                    DrawThingsClientLogger.debug("  override: models=\(merged.models.count)B, loras=\(merged.loras.count)B")
                     effectiveOverride = merged
                 } else {
                     DrawThingsClientLogger.debug("No spec found for \(modelFile), using echo cache")
