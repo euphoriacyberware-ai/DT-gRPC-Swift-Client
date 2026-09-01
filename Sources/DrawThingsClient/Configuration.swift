@@ -555,6 +555,12 @@ public struct DrawThingsConfiguration: Sendable {
             return loraT
         }
 
+        // Dump key generation parameters for debugging
+        DrawThingsClientLogger.debug("FlatBuffer config: model=\(configT.model ?? "nil"), sampler=\(configT.sampler.rawValue) (\(configT.sampler)), steps=\(configT.steps), guidanceScale=\(configT.guidanceScale), strength=\(configT.strength), shift=\(configT.shift), seed=\(configT.seed), seedMode=\(configT.seedMode.rawValue)")
+        DrawThingsClientLogger.debug("  guidance: guidanceEmbed=\(configT.guidanceEmbed), speedUpWithGuidanceEmbed=\(configT.speedUpWithGuidanceEmbed), resolutionDependentShift=\(configT.resolutionDependentShift), clipSkip=\(configT.clipSkip)")
+        DrawThingsClientLogger.debug("  size: \(configT.startWidth * 64)x\(configT.startHeight * 64), t5TextEncoder=\(configT.t5TextEncoder), clipWeight=\(configT.clipWeight)")
+        DrawThingsClientLogger.debug("  controls: \(configT.controls.count), loras: \(configT.loras.count)")
+
         // Pack into FlatBuffer — match the upstream Draw Things app's
         // serialization: default FlatBufferBuilder (no serializeDefaults)
         // and .data for the output.  Fields whose value equals the schema
