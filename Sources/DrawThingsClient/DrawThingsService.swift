@@ -147,7 +147,13 @@ public actor DrawThingsService {
                 }
                 if ModelSpecProvider.hasSpec(for: modelFile) {
                     DrawThingsClientLogger.debug("Using model spec for: \(modelFile)")
-                    effectiveOverride = ModelSpecProvider.overrideForModel(modelFile)
+                    // Start with the echo-cached override so LoRA, ControlNet,
+                    // textual inversion and upscaler specs are preserved.
+                    // Only replace the models field with our looked-up spec.
+                    var merged = self.models ?? MetadataOverride()
+                    let specOverride = ModelSpecProvider.overrideForModel(modelFile)
+                    merged.models = specOverride.models
+                    effectiveOverride = merged
                 } else {
                     DrawThingsClientLogger.debug("No spec found for \(modelFile), using echo cache")
                     effectiveOverride = self.models
