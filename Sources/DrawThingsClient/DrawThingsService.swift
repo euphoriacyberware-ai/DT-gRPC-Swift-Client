@@ -10,6 +10,7 @@
 //
 
 import CryptoKit
+import FlatBuffers
 import Foundation
 import GRPC
 import NIO
@@ -102,11 +103,42 @@ public actor DrawThingsService {
         previewHandler: @escaping (Data) async -> Void = { _ in },
         audioHandler: @escaping (Data) async -> Void = { _ in }
     ) async throws -> [Data] {
-        
+
         // Ensure we have models metadata
         if self.models == nil {
             _ = try await echo(sharedSecret: sharedSecret)
         }
+
+        // Build the effective override.  The server needs model specifications
+        // to determine the correct version, modifier, objective, and latent
+        // space for each model.  Many newer models (Flux.2 Klein 9B, Krea 2,
+        // etc.) are NOT in the server's builtinSpecifications — they only
+        // exist in the bundled models.json.  Without the correct spec the
+        // server falls back to SD v1 defaults and produces noise.
+        //
+        // Priority: explicit caller override > bundled models.json spec >
+        // echo-cached server metadata.
+        let effectiveOverride: MetadataOverride? = {
+            if let override = override { return override }
+
+            // Extract the model filename from the FlatBuffer configuration
+            // and look it up in the bundled models.json.
+            let modelFile: String? = configuration.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> String? in
+                guard buf.count >= 4 else { return nil }
+                let bb = ByteBuffer(
+                    assumingMemoryBound: UnsafeMutableRawPointer(mutating: buf.baseAddress!),
+                    capacity: buf.count)
+                let config = GenerationConfiguration(bb, o: Int32(bb.read(def: Int32.self, position: bb.reader)) + Int32(bb.reader))
+                return config.model
+            }
+
+            if let modelFile = modelFile, ModelSpecProvider.hasSpec(for: modelFile) {
+                DrawThingsClientLogger.debug("Using bundled model spec for: \(modelFile)")
+                return ModelSpecProvider.overrideForModel(modelFile)
+            }
+
+            return self.models
+        }()
 
         let request = ImageGenerationRequest.with {
             $0.scaleFactor = scaleFactor
@@ -154,13 +186,8 @@ public actor DrawThingsService {
                 return seenHashes.insert(hash).inserted
             }
 
-            // An explicit override from the caller wins; otherwise echo back the
-            // server's own model metadata cached from echo(), so the request
-            // always carries Zoo metadata for the models it references.
-            if let override = override {
-                $0.override = override
-            } else if let cachedModels = self.models {
-                $0.override = cachedModels
+            if let effectiveOverride = effectiveOverride {
+                $0.override = effectiveOverride
             }
 
             if let sharedSecret = sharedSecret {

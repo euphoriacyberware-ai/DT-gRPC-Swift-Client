@@ -52,6 +52,9 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
                 .product(name: "FlatBuffers", package: "flatbuffers"),
                 "CFpzip",
+            ],
+            resources: [
+                .copy("Resources/models.json"),
             ]
         ),
         .testTarget(
