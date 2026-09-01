@@ -151,8 +151,10 @@ public actor DrawThingsService {
                     // textual inversion and upscaler specs are preserved.
                     // Only replace the models field with our looked-up spec.
                     var merged = self.models ?? MetadataOverride()
+                    DrawThingsClientLogger.debug("  echo cache override: models=\(merged.models.count)B, loras=\(merged.loras.count)B, controlNets=\(merged.controlNets.count)B")
                     let specOverride = ModelSpecProvider.overrideForModel(modelFile)
                     merged.models = specOverride.models
+                    DrawThingsClientLogger.debug("  merged override: models=\(merged.models.count)B, loras=\(merged.loras.count)B")
                     effectiveOverride = merged
                 } else {
                     DrawThingsClientLogger.debug("No spec found for \(modelFile), using echo cache")
