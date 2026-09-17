@@ -4,7 +4,11 @@
 
 # DrawThingsClient
 
-A Swift client library for interacting with Draw Things gRPC server, designed for easy integration with SwiftUI applications on macOS and iOS.
+A Swift client library for the Draw Things gRPC server, designed for easy integration with SwiftUI applications on macOS and iOS.
+
+## Overview
+
+DrawThingsClient is the base library of the DrawThings Swift family. It speaks the Draw Things gRPC protocol directly: it handles the transport, encodes and decodes the DTTensor image format, serializes FlatBuffer configurations, and tracks generation progress and previews. Using it in an app means you work with `PlatformImage` (`NSImage`/`UIImage`) and plain Swift types while the library takes care of the wire format, so text-to-image, img2img, inpainting, ControlNet, LoRA and video generation are all a single async call away.
 
 ## Features
 
@@ -45,11 +49,10 @@ The following features are available in the protocol but have not yet been teste
 
 ## Requirements
 
-- macOS 14.0+
-- iOS 17.0+ (if building for iOS)
-- Xcode 15.0+
+- macOS 14.0+ / iOS 17.0+
 - Swift 5.9+
-- Draw Things app with gRPC server enabled or standalone gRPC server for nVidia
+- Xcode 15.0+
+- A running [Draw Things](https://drawthings.ai) gRPC server (the Draw Things app with its gRPC server enabled, or the standalone gRPC server for NVIDIA)
 
 ### Draw Things Server Setup
 
@@ -65,12 +68,41 @@ To use this framework, you need to configure the Draw Things gRPC server with th
    - Generation pass through to another server, including DT+ is supported
    - Bring Your Own LoRA (BYOL) feature of DT+ is not supported in Bridge Mode currently. This is a DT+ service limitation, not a limitation of the DrawThingsClient
 
-2. **Enable Model Browsing**: Recommended to be **enabled**
+4. **Enable Model Browsing**: Recommended to be **enabled**
    - This allows the framework to query available checkpoint models, controlnets, LoRAs, etc.
    - Required for proper initialization and model selection in a UI
    
-3. **Share Secret**: May be **enabled** or **disabled**
-    - The shared secret is implemented in the client but the application must also support passing that optional paramter with the generation request.
+5. **Share Secret**: May be **enabled** or **disabled**
+    - The shared secret is implemented in the client but the application must also support passing that optional parameter with the generation request.
+
+## Dependencies
+
+**DrawThings family:** none — this is the base library that [DrawThingsQueue](https://github.com/euphoriacyberware-ai/DrawThingsQueue), [DrawThingsKit](https://github.com/euphoriacyberware-ai/DrawThingsKit) and [DrawThingsVideoKit](https://github.com/euphoriacyberware-ai/DrawThingsVideoKit) build on.
+
+**Third-party packages** (resolved automatically by Swift Package Manager):
+
+- [grpc-swift](https://github.com/grpc/grpc-swift) — gRPC client with async/await support
+- [swift-protobuf](https://github.com/apple/swift-protobuf) — protocol buffer implementation
+- [flatbuffers](https://github.com/google/flatbuffers) — configuration serialization
+- fpzip — floating-point tensor decompression (bundled as the `CFpzip` target)
+
+## Installation
+
+### Swift Package Manager
+
+Add DrawThingsClient to your project via Xcode:
+
+1. File → Add Package Dependencies...
+2. Enter the repository URL
+3. Select the version/branch you want to use
+
+Or add it to your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/euphoriacyberware-ai/DT-gRPC-Swift-Client", branch: "main")
+]
+```
 
 ## Important: Image Data Formats
 
@@ -367,24 +399,6 @@ Samplers are represented as integers in the configuration:
 ### Tile Dimensions
 
 Tile dimensions (`diffusionTileWidth`, `decodingTileHeight`, etc.) are in **pixels** in the JSON export. The `DrawThingsConfiguration` accepts pixel values and converts to 64-pixel units internally during FlatBuffer serialization.
-
-## Installation
-
-### Swift Package Manager
-
-Add DrawThingsClient to your project via Xcode:
-
-1. File → Add Package Dependencies...
-2. Enter the repository URL
-3. Select the version/branch you want to use
-
-Or add it to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/euphoriacyberware-ai/DT-gRPC-Swift-Client", from: "1.2.5")
-]
-```
 
 ## Quick Start
 
@@ -1100,3 +1114,7 @@ Special thanks to KC for pioneering the TypeScript gRPC client for Draw Things, 
 ## Compatibility
 
 This framework maintains API compatibility with the Draw Things gRPC server protocol.
+
+## Disclaimer
+
+The "Draw Things" name is used in this project only because Draw Things is the application these libraries are designed to work with. The author is not affiliated with, endorsed by, or associated with the developers of Draw Things. The code in this library was independently derived and is not based on Draw Things source code.
