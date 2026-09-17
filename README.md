@@ -60,20 +60,16 @@ To use this framework, you need to configure the Draw Things gRPC server with th
 
 1. **Response Compression**: May be **enabled** or **disabled**
    - Having server-side compression enabled is supported, the client has the ability to decompress the responses
-   
 2. **Transport Layer Security**: May be **enabled** or **disabled**
    - Either mode is supported, enabling TLS is recommended
-   
 3. **Bridge Mode**: May be **enabled** or **disabled**
    - Generation pass through to another server, including DT+ is supported
    - Bring Your Own LoRA (BYOL) feature of DT+ is not supported in Bridge Mode currently. This is a DT+ service limitation, not a limitation of the DrawThingsClient
-
 4. **Enable Model Browsing**: Recommended to be **enabled**
    - This allows the framework to query available checkpoint models, controlnets, LoRAs, etc.
    - Required for proper initialization and model selection in a UI
-   
 5. **Share Secret**: May be **enabled** or **disabled**
-    - The shared secret is implemented in the client but the application must also support passing that optional parameter with the generation request.
+   - The shared secret is implemented in the client but the application must also support passing that optional parameter with the generation request.
 
 ## Dependencies
 
@@ -176,7 +172,7 @@ if let fps = family.nativeFrameRate {
 }
 ```
 
-**Note:** If using **DrawThingsKit**, you don't need to handle this manually - the Kit automatically detects model families and converts previews/results to native `PlatformImage` types.
+**Note:** The high-level `DrawThingsClient` returns finished results as `PlatformImage` already (final images are plain RGB, so no model family is involved), but it does not surface preview images. Previews are only available through `DrawThingsService`'s `previewHandler`, where you convert them yourself as shown above. If you use **DrawThingsQueue** (directly, or through **DrawThingsKit**'s `JobQueue`), previews and results are converted for you; set the queue's `modelFamilyProvider` closure so the conversion uses the right coefficients for the model in use.
 
 ### When to Use Each Format
 
