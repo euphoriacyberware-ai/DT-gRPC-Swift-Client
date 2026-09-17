@@ -36,7 +36,7 @@ The following features have been tested and confirmed working:
 - **Advanced Optimization**: TEA Cache and other performance optimizations
 - **Shared Secret**: API support for using a shared secret with your gRPC server connection
 - **Response Compression**: The library can receive compressed responses from the gRPC server
-- **Audio**: Audio functionality (for LTX-2) is implemented
+- **Audio**: Audio functionality (for LTX-2 and MiniMax H3) is implemented
 
 ### ⚠️ Untested Features
 
@@ -252,7 +252,7 @@ Draw Things can export its configuration as JSON. Here is a complete example:
   "refinerStart": 0.85,
   "resolutionDependentShift": false,
   "sampler": 17,
-  "seed": 945446116,
+  "seed": -1,
   "seedMode": 2,
   "separateClipL": false,
   "separateOpenClipG": false,
