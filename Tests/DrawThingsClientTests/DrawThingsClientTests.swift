@@ -173,6 +173,14 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertEqual(LatentModelFamily.detect(from: "flux1"), .flux)
         XCTAssertEqual(LatentModelFamily.detect(from: "wan22_5b"), .wan22)
         XCTAssertEqual(LatentModelFamily.detect(from: "totally-unknown-model"), .unknown)
+
+        // MiniMax H3 and LongCat-Video Avatar (version strings and filenames).
+        XCTAssertEqual(LatentModelFamily.detect(from: "minimaxH3"), .minimaxH3)
+        XCTAssertEqual(LatentModelFamily.detect(from: "minimax_h3"), .minimaxH3)
+        XCTAssertEqual(LatentModelFamily.detect(from: "minimax_h3_q8p.ckpt"), .minimaxH3)
+        XCTAssertEqual(LatentModelFamily.detect(from: "longcatVideoAvatar1_5"), .longcatVideoAvatar)
+        XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_v1.5"), .longcatVideoAvatar)
+        XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt"), .longcatVideoAvatar)
     }
 
     func testLatentModelFamilyChannels() {
@@ -182,5 +190,25 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertEqual(LatentModelFamily.flux2.latentChannels, 32)
         XCTAssertEqual(LatentModelFamily.wan22.latentChannels, 48)
         XCTAssertEqual(LatentModelFamily.hiDreamO1.latentChannels, 3 * 32 * 32)
+        XCTAssertEqual(LatentModelFamily.minimaxH3.latentChannels, 24)
+        XCTAssertEqual(LatentModelFamily.longcatVideoAvatar.latentChannels, 16)
+    }
+
+    func testLatentModelFamilyNativeFrameRate() {
+        XCTAssertEqual(LatentModelFamily.minimaxH3.nativeFrameRate, 24)
+        XCTAssertEqual(LatentModelFamily.longcatVideoAvatar.nativeFrameRate, 25)
+        XCTAssertNil(LatentModelFamily.flux.nativeFrameRate)
+    }
+
+    func testMiniMaxH3AudioHeight() {
+        // Single frame: 1 video frame -> 2 audio rows of 32 channels = 64 values;
+        // row size = 1 * 8 * 24 = 192, so 1 row holds it and 192 % 32 == 0.
+        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 1, latentWidth: 8), 1)
+        // Frame counts upstream would reject yield 0 (no stripping) instead of trapping.
+        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 3, latentWidth: 8), 0)
+        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 0), 0)
+        // 7 latent frames -> 22 real frames -> 2 * round(22/24*40) = 74 rows * 32 = 2368 values;
+        // row size = 7 * 8 * 24 = 1344 -> ceil = 2, and 2688 % 32 == 0.
+        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 8), 2)
     }
 }

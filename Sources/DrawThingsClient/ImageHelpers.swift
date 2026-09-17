@@ -60,6 +60,10 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
     case kandinsky
     /// Würstchen / Stable Cascade Stage B/C (3- or 4-channel latent)
     case wurstchen
+    /// MiniMax H3 (24-channel video latent with audio latent rows packed below)
+    case minimaxH3
+    /// LongCat-Video Avatar 1.5 (16-channel latent, same coefficients as Wan 2.1, 25 fps)
+    case longcatVideoAvatar
     /// Unknown model - will use default coefficients
     case unknown
 
@@ -108,6 +112,11 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
             return .wan21
         case "wan22_5b", "wan_v2.2_5b":
             return .wan22
+        case "minimaxh3", "minimax_h3":
+            return .minimaxH3
+        case "longcatvideoavatar1_5", "longcat_video_avatar_v1.5":
+            // LongCat-Video Avatar shares the Wan 2.1 16-channel coefficients upstream.
+            return .longcatVideoAvatar
         case "hunyuanvideo", "hunyuan_video":
             return .hunyuanVideo
         case "sd3", "sd3large", "sd3_large":
@@ -166,6 +175,12 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         if lowercased.contains("cosmos") {
             return .qwen
         }
+        if lowercased.contains("minimax") {
+            return .minimaxH3
+        }
+        if lowercased.contains("longcat") {
+            return .longcatVideoAvatar
+        }
         if lowercased.contains("wan") {
             // Distinguish Wan 2.2 (5B) from Wan 2.1
             if lowercased.contains("wan22") || lowercased.contains("wan_2.2") || lowercased.contains("wan-2.2") || lowercased.contains("5b") {
@@ -208,8 +223,10 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         switch self {
         case .sd1, .sdxl, .kandinsky, .wurstchen:
             return 4
-        case .sd3, .flux, .hunyuanVideo, .qwen, .zImage, .wan21, .ltx2, .ltx23:
+        case .sd3, .flux, .hunyuanVideo, .qwen, .zImage, .wan21, .ltx2, .ltx23, .longcatVideoAvatar:
             return 16
+        case .minimaxH3:
+            return 24
         case .flux2:
             return 32
         case .wan22:
@@ -226,9 +243,9 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         switch self {
         case .wan21, .wan22:
             return 16
-        case .hunyuanVideo:
+        case .hunyuanVideo, .minimaxH3:
             return 24
-        case .ltx2, .ltx23:
+        case .ltx2, .ltx23, .longcatVideoAvatar:
             return 25
         default:
             return nil
@@ -622,6 +639,16 @@ public struct ImageHelpers {
             }
         }
 
+        // MiniMax H3 packs audio latent rows below the 24-channel video latent in the same way.
+        // Key on the channel count as well so a 24-channel tensor is handled even without a family hint.
+        if (family == .minimaxH3 || channels == 24) && dim0 > 0 && width > 0 {
+            let audioHeight = minimaxH3AudioHeight(videoLatentFrames: dim0, latentWidth: width)
+            if audioHeight > 0 && audioHeight < height {
+                DrawThingsClientLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from MiniMax H3 preview (height \(height) -> \(height - audioHeight))")
+                height -= audioHeight
+            }
+        }
+
         // HiDream-O1 uses a patch-packed latent (3 × 32 × 32 channels) decoded into an
         // image 32× larger per side, not a coefficient matrix. Handle it before the
         // standard channel guard, keyed on the family or the distinctive channel count.
@@ -630,7 +657,7 @@ public struct ImageHelpers {
             return try hiDreamO1PatchToImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
         }
 
-        guard channels == 3 || channels == 4 || channels == 16 || channels == 32 || channels == 48 else {
+        guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 else {
             DrawThingsClientLogger.error("dtTensorToImage: unsupported channel count \(channels)")
             throw ImageError.conversionFailed
         }
@@ -658,6 +685,10 @@ public struct ImageHelpers {
                     // 48-channel latent space to RGB (Wan 2.2 5B coefficients)
                     DrawThingsClientLogger.debug("dtTensorToImage: using 48-channel Wan 2.2 conversion")
                     convert48ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
+                } else if channels == 24 {
+                    // 24-channel latent space to RGB (MiniMax H3 coefficients)
+                    DrawThingsClientLogger.debug("dtTensorToImage: using 24-channel MiniMax H3 conversion")
+                    convertMiniMaxH3ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                 } else if channels == 32 {
                     // 32-channel latent space to RGB (Flux 2 coefficients)
                     DrawThingsClientLogger.debug("dtTensorToImage: using 32-channel Flux 2 conversion")
@@ -666,7 +697,7 @@ public struct ImageHelpers {
                     // 16-channel latent space to RGB - use model-specific coefficients
                     let family = modelFamily ?? .flux
                     switch family {
-                    case .qwen, .wan21:
+                    case .qwen, .wan21, .longcatVideoAvatar:
                         DrawThingsClientLogger.debug("dtTensorToImage: using Qwen/Wan21 16-channel conversion")
                         convertQwenWan21ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .sd3:
@@ -735,6 +766,33 @@ public struct ImageHelpers {
         let audioFrames = (dim0 - 1) * 8 + 1
         let audioHeight = (audioFrames + width * dim0 - 1) / (width * dim0)
         return (audioFrames, audioHeight)
+    }
+
+    // MARK: - MiniMax H3 Audio Latent Stripping
+
+    /// Compute the number of audio latent rows packed below a MiniMax H3 video latent.
+    ///
+    /// Ports the upstream `MiniMaxH3AudioHeight` function. The video latent has 24 channels
+    /// at 24 fps; audio is 32-channel at 40 rows per second, appended as extra rows.
+    /// Returns 0 for a frame count the upstream function would not accept.
+    static func minimaxH3AudioHeight(videoLatentFrames: Int, latentWidth: Int) -> Int {
+        let videoChannels = 24
+        let audioChannels = 32
+        let framesPerSecond = 24
+        guard latentWidth > 0 else { return 0 }
+        guard videoLatentFrames == 1 || videoLatentFrames == 2
+            || (videoLatentFrames >= 7 && (videoLatentFrames - 2) % 5 == 0) else {
+            return 0
+        }
+        let frames = videoLatentFrames == 1 ? 1 : (videoLatentFrames - 2) / 5 * 17 + 5
+        let rows = 2 * Int((Double(frames) / Double(framesPerSecond) * 40).rounded())
+        let rowSize = videoLatentFrames * latentWidth * videoChannels
+        let audioSize = rows * audioChannels
+        var height = (audioSize + rowSize - 1) / rowSize
+        while height * rowSize % audioChannels != 0 {
+            height += 1
+        }
+        return height
     }
 
     // MARK: - Model-Specific Latent Conversion Functions
@@ -1248,6 +1306,68 @@ public struct ImageHelpers {
             bVal += 0.0142 * v20 - 0.0007 * v21 - 0.0059 * v22 - 0.0049 * v23
             bVal += -0.0312 * v24 - 0.0066 * v25 + 0.0025 * v26 - 0.0048 * v27
             bVal += -0.0468 * v28 + 0.0609 * v29 - 0.0043 * v30 - 0.0614 * v31 - 0.0851
+            let b = bVal * 127.5 + 127.5
+
+            uint8Ptr[i * 3 + 0] = UInt8(clamping: Int(r.isFinite ? r : 0))
+            uint8Ptr[i * 3 + 1] = UInt8(clamping: Int(g.isFinite ? g : 0))
+            uint8Ptr[i * 3 + 2] = UInt8(clamping: Int(b.isFinite ? b : 0))
+        }
+    }
+
+    /// Convert 24-channel MiniMax H3 latent to RGB (upstream preview coefficients)
+    private static func convertMiniMaxH3ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+        for i in 0..<pixelCount {
+            let base = i * 24
+            let v0 = f16ToFloat(float16Ptr, base + 0)
+            let v1 = f16ToFloat(float16Ptr, base + 1)
+            let v2 = f16ToFloat(float16Ptr, base + 2)
+            let v3 = f16ToFloat(float16Ptr, base + 3)
+            let v4 = f16ToFloat(float16Ptr, base + 4)
+            let v5 = f16ToFloat(float16Ptr, base + 5)
+            let v6 = f16ToFloat(float16Ptr, base + 6)
+            let v7 = f16ToFloat(float16Ptr, base + 7)
+            let v8 = f16ToFloat(float16Ptr, base + 8)
+            let v9 = f16ToFloat(float16Ptr, base + 9)
+            let v10 = f16ToFloat(float16Ptr, base + 10)
+            let v11 = f16ToFloat(float16Ptr, base + 11)
+            let v12 = f16ToFloat(float16Ptr, base + 12)
+            let v13 = f16ToFloat(float16Ptr, base + 13)
+            let v14 = f16ToFloat(float16Ptr, base + 14)
+            let v15 = f16ToFloat(float16Ptr, base + 15)
+            let v16 = f16ToFloat(float16Ptr, base + 16)
+            let v17 = f16ToFloat(float16Ptr, base + 17)
+            let v18 = f16ToFloat(float16Ptr, base + 18)
+            let v19 = f16ToFloat(float16Ptr, base + 19)
+            let v20 = f16ToFloat(float16Ptr, base + 20)
+            let v21 = f16ToFloat(float16Ptr, base + 21)
+            let v22 = f16ToFloat(float16Ptr, base + 22)
+            let v23 = f16ToFloat(float16Ptr, base + 23)
+
+            var rVal: Float = -0.018555 * v0 + 0.150164 * v1 + 0.027367 * v2 - 0.000793 * v3
+            rVal += -0.048556 * v4 + 0.011740 * v5 + 0.061517 * v6 + 0.035321 * v7
+            rVal += -0.017426 * v8 + 0.531539 * v9 - 0.024968 * v10 - 0.032549 * v11
+            rVal += 0.022609 * v12 - 0.084001 * v13 - 0.018830 * v14 + 0.020777 * v15
+            rVal += -0.008390 * v16 - 0.013281 * v17 + 0.000260 * v18 + 0.105471 * v19
+            rVal += 0.016529 * v20 - 0.014015 * v21 - 0.033787 * v22 + 0.004224 * v23
+            rVal += 0.057426
+            let r = rVal * 127.5 + 127.5
+
+            var gVal: Float = 0.024344 * v0 + 0.137244 * v1 - 0.050369 * v2 - 0.164622 * v3
+            gVal += 0.013970 * v4 + 0.014172 * v5 + 0.061212 * v6 + 0.086879 * v7
+            gVal += 0.002997 * v8 + 0.548819 * v9 - 0.040234 * v10 - 0.029096 * v11
+            gVal += 0.020286 * v12 - 0.038131 * v13 + 0.010412 * v14 + 0.011196 * v15
+            gVal += -0.012201 * v16 - 0.002924 * v17 + 0.001833 * v18 + 0.100482 * v19
+            gVal += 0.015213 * v20 - 0.017438 * v21 - 0.009984 * v22 + 0.017284 * v23
+            gVal += -0.022078
+            let g = gVal * 127.5 + 127.5
+
+            var bVal: Float = -0.017536 * v0 + 0.129221 * v1 - 0.208606 * v2 - 0.323161 * v3
+            bVal += -0.074286 * v4 - 0.006906 * v5 + 0.110025 * v6 + 0.110059 * v7
+            bVal += 0.035356 * v8 + 0.624404 * v9 - 0.034302 * v10 - 0.017221 * v11
+            bVal += 0.050661 * v12 - 0.020805 * v13 + 0.061120 * v14 - 0.030994 * v15
+            bVal += -0.025687 * v16 + 0.006331 * v17 - 0.011038 * v18 + 0.132106 * v19
+            bVal += 0.009999 * v20 - 0.019134 * v21 - 0.019725 * v22 + 0.027196 * v23
+            bVal += -0.071449
             let b = bVal * 127.5 + 127.5
 
             uint8Ptr[i * 3 + 0] = UInt8(clamping: Int(r.isFinite ? r : 0))

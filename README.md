@@ -159,11 +159,13 @@ let previewImage = try ImageHelpers.dtTensorToImage(previewData, modelFamily: fa
 | `.hunyuanVideo` | HunyuanVideo | 16 | 24 |
 | `.ltx2` | LTX-2 | 16 | 25 |
 | `.ltx23` | LTX-2.3 | 16 | 25 |
+| `.minimaxH3` | MiniMax H3 | 24 | 24 |
+| `.longcatVideoAvatar` | LongCat-Video Avatar 1.5 | 16 | 25 |
 | `.hiDreamO1` | HiDream-O1 | 3072 (patch-packed) | — |
 | `.kandinsky` | Kandinsky 2.1 | 4 (OKLab) | — |
 | `.wurstchen` | Würstchen / Stable Cascade | 4 | — |
 
-**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Krea 2, Ernie Image, Ideogram 4, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively).
+**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Krea 2, Ernie Image, Ideogram 4, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively). `.longcatVideoAvatar` uses the Wan 2.1 coefficients but has its own native frame rate. `.minimaxH3` and `.ltx2`/`.ltx23` carry audio latent rows packed below the video latent; these are stripped automatically before preview conversion.
 
 The `nativeFrameRate` property returns the model's native FPS for video models, or `nil` for image-only models:
 
