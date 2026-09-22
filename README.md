@@ -479,14 +479,13 @@ struct ContentView: View {
 
 ```swift
 let config = DrawThingsConfiguration(
-    width: 1024,
-    height: 1024,
-    steps: 30,
-    model: "sd_xl_base_1.0.safetensors",
-    sampler: .eulera,
-    guidanceScale: 7.5,
+    width: 512,
+    height: 512,
+    steps: 8,
+    model: "z_image_turbo_1.0_q8p.ckpt",
+    sampler: .unipctrailing,
+    guidanceScale: 1.0,
     seed: 12345,
-    clipSkip: 2
 )
 ```
 See `./Examples/ConfigfromJSON.swift` within this project for a usable function which populates a `DrawThingsConfiguration` from a Draw Things JSON configuration string.
