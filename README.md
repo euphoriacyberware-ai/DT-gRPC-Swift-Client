@@ -1048,45 +1048,53 @@ do {
 
 ## Logging & Debugging
 
-DrawThingsClient uses Apple's unified logging system (`os.log`) for diagnostic output. By default, logging is disabled in production.
+DrawThingsClient provides `DTLogger`, a unified logger built on Apple's `os.log`. It is shared by DrawThingsQueue, DrawThingsKit and DrawThingsVideoKit, so one setting controls diagnostic output from every layer. Logging is off by default.
 
 ### Enable Logging
-
-To enable logging for debugging:
 
 ```swift
 import DrawThingsClient
 
-// Enable debug logging
-DrawThingsClientLogger.minimumLevel = .debug
+// Enable debug logging (request/response details, tensor conversion, model specs)
+DTLogger.minimumLevel = .debug
 
 // Or set a higher threshold
-DrawThingsClientLogger.minimumLevel = .info  // Only info and above
+DTLogger.minimumLevel = .info  // Only info and above
 ```
 
 ### Log Levels
 
 - `.debug` - Detailed diagnostic information (request/response data, sizes, etc.)
 - `.info` - General informational messages
-- `.notice` - Significant events
+- `.warning` - Potential issues
 - `.error` - Error conditions
 - `.fault` - Critical failures
 - `.none` - Disable all logging (default)
 
+### Categories
+
+Messages are tagged with a `DTLogCategory`: `.connection`, `.queue`, `.generation`, `.grpc`, `.models`, `.configuration`, `.images`, `.video`, `.general`. The client itself logs under `.grpc`, `.images`, `.configuration` and `.models`.
+
 ### Viewing Logs
 
-Logs can be viewed in:
-- **Console.app** on macOS (filter by subsystem: `com.drawthings.kit`)
-- **Xcode Debug Console** during development
-- Terminal using: `log stream --predicate 'subsystem == "com.drawthings.kit"'`
+Messages are logged with public privacy, so values are visible outside the debugger too:
+- **Console.app** on macOS (filter by subsystem: `com.drawthings`)
+- **Xcode Debug Console** during development (console mirroring is on by default in DEBUG builds)
+- Terminal: `log stream --predicate 'subsystem == "com.drawthings"' --level debug`
+- A single category: `log stream --predicate 'subsystem == "com.drawthings" AND category == "gRPC"' --level debug`
 
-### Disable Emoji
-
-If you prefer plain log messages without emoji prefixes:
+### Other Settings
 
 ```swift
-DrawThingsClientLogger.useEmoji = false
+DTLogger.shared.isEnabled = false         // Turn everything off
+DTLogger.shared.logToConsole = true       // Mirror to stdout (default: DEBUG builds only)
+DTLogger.shared.includeTimestamps = false // Console output only
+DTLogger.shared.useEmoji = false          // Console output only
 ```
+
+### Migrating from DrawThingsClientLogger
+
+`DrawThingsClientLogger` is deprecated and forwards to `DTLogger`. Replace `DrawThingsClientLogger.minimumLevel` with `DTLogger.minimumLevel`, and `.notice` with `.warning`.
 
 ## Contributing
 
