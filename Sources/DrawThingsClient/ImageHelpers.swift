@@ -435,22 +435,22 @@ public struct ImageHelpers {
         let imageFillsCanvas = abs(scaledSize.width - canvasSize.width) < 0.5 &&
                                abs(scaledSize.height - canvasSize.height) < 0.5
 
-        DrawThingsClientLogger.debug("🔍 scaleImageToCanvas: image=\(imageSize), canvas=\(canvasSize), scaled=\(scaledSize), fills=\(imageFillsCanvas)")
+        DTLogger.debug("🔍 scaleImageToCanvas: image=\(imageSize), canvas=\(canvasSize), scaled=\(scaledSize), fills=\(imageFillsCanvas)", category: .images)
 
         // If image fills canvas completely, no need to create new canvas with background
         if imageFillsCanvas {
             // Just resize the image if needed
             if abs(imageSize.width - canvasSize.width) < 0.5 &&
                abs(imageSize.height - canvasSize.height) < 0.5 {
-                DrawThingsClientLogger.debug("✅ Image already correct size, returning original")
+                DTLogger.debug("✅ Image already correct size, returning original", category: .images)
                 return image
             } else {
-                DrawThingsClientLogger.debug("✅ Resizing image without background")
+                DTLogger.debug("✅ Resizing image without background", category: .images)
                 return resizeImage(image, to: canvasSize)
             }
         }
 
-        DrawThingsClientLogger.debug("⚠️ Image needs letterboxing, adding background")
+        DTLogger.debug("⚠️ Image needs letterboxing, adding background", category: .images)
 
         #if os(macOS)
         let canvas = NSImage(size: canvasSize)
@@ -543,7 +543,7 @@ public struct ImageHelpers {
 
         let channels = (hasTransparency && !forceRGB) ? 4 : 3
 
-        DrawThingsClientLogger.debug("🖼️ Converting image: \(width)x\(height), \(channels) channels, hasTransparency: \(hasTransparency), forceRGB: \(forceRGB)")
+        DTLogger.debug("🖼️ Converting image: \(width)x\(height), \(channels) channels, hasTransparency: \(hasTransparency), forceRGB: \(forceRGB)", category: .images)
 
         // DTTensor format constants
         let CCV_TENSOR_CPU_MEMORY: UInt32 = 0x1
@@ -593,7 +593,7 @@ public struct ImageHelpers {
             }
         }
 
-        DrawThingsClientLogger.debug("✅ DTTensor created: \(tensorData.count) bytes")
+        DTLogger.debug("✅ DTTensor created: \(tensorData.count) bytes", category: .images)
 
         return tensorData
     }
@@ -634,7 +634,7 @@ public struct ImageHelpers {
                 dim0: dim0, height: height, width: width
             )
             if audioHeight > 0 && audioHeight < height {
-                DrawThingsClientLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from LTX-2 preview (height \(height) -> \(height - audioHeight))")
+                DTLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from LTX-2 preview (height \(height) -> \(height - audioHeight))", category: .images)
                 height -= audioHeight
             }
         }
@@ -644,7 +644,7 @@ public struct ImageHelpers {
         if (family == .minimaxH3 || channels == 24) && dim0 > 0 && width > 0 {
             let audioHeight = minimaxH3AudioHeight(videoLatentFrames: dim0, latentWidth: width)
             if audioHeight > 0 && audioHeight < height {
-                DrawThingsClientLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from MiniMax H3 preview (height \(height) -> \(height - audioHeight))")
+                DTLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from MiniMax H3 preview (height \(height) -> \(height - audioHeight))", category: .images)
                 height -= audioHeight
             }
         }
@@ -653,12 +653,12 @@ public struct ImageHelpers {
         // image 32× larger per side, not a coefficient matrix. Handle it before the
         // standard channel guard, keyed on the family or the distinctive channel count.
         if family == .hiDreamO1 || channels == 3 * 32 * 32 {
-            DrawThingsClientLogger.debug("dtTensorToImage: using HiDream-O1 patch-based conversion")
+            DTLogger.debug("dtTensorToImage: using HiDream-O1 patch-based conversion", category: .images)
             return try hiDreamO1PatchToImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
         }
 
         guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 else {
-            DrawThingsClientLogger.error("dtTensorToImage: unsupported channel count \(channels)")
+            DTLogger.error("dtTensorToImage: unsupported channel count \(channels)", category: .images)
             throw ImageError.conversionFailed
         }
 
@@ -669,7 +669,7 @@ public struct ImageHelpers {
             throw ImageError.invalidData
         }
 
-        DrawThingsClientLogger.debug("dtTensorToImage: \(width)x\(height), \(channels) channels, modelFamily=\(modelFamily?.rawValue ?? "nil")")
+        DTLogger.debug("dtTensorToImage: \(width)x\(height), \(channels) channels, modelFamily=\(modelFamily?.rawValue ?? "nil")", category: .images)
 
         // Output RGB data
         var rgbData = Data(count: width * height * 3)
@@ -683,40 +683,40 @@ public struct ImageHelpers {
 
                 if channels == 48 {
                     // 48-channel latent space to RGB (Wan 2.2 5B coefficients)
-                    DrawThingsClientLogger.debug("dtTensorToImage: using 48-channel Wan 2.2 conversion")
+                    DTLogger.debug("dtTensorToImage: using 48-channel Wan 2.2 conversion", category: .images)
                     convert48ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                 } else if channels == 24 {
                     // 24-channel latent space to RGB (MiniMax H3 coefficients)
-                    DrawThingsClientLogger.debug("dtTensorToImage: using 24-channel MiniMax H3 conversion")
+                    DTLogger.debug("dtTensorToImage: using 24-channel MiniMax H3 conversion", category: .images)
                     convertMiniMaxH3ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                 } else if channels == 32 {
                     // 32-channel latent space to RGB (Flux 2 coefficients)
-                    DrawThingsClientLogger.debug("dtTensorToImage: using 32-channel Flux 2 conversion")
+                    DTLogger.debug("dtTensorToImage: using 32-channel Flux 2 conversion", category: .images)
                     convertFlux2ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                 } else if channels == 16 {
                     // 16-channel latent space to RGB - use model-specific coefficients
                     let family = modelFamily ?? .flux
                     switch family {
                     case .qwen, .wan21, .longcatVideoAvatar:
-                        DrawThingsClientLogger.debug("dtTensorToImage: using Qwen/Wan21 16-channel conversion")
+                        DTLogger.debug("dtTensorToImage: using Qwen/Wan21 16-channel conversion", category: .images)
                         convertQwenWan21ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .sd3:
-                        DrawThingsClientLogger.debug("dtTensorToImage: using SD3 16-channel conversion")
+                        DTLogger.debug("dtTensorToImage: using SD3 16-channel conversion", category: .images)
                         convertSD3ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .hunyuanVideo:
-                        DrawThingsClientLogger.debug("dtTensorToImage: using HunyuanVideo 16-channel conversion")
+                        DTLogger.debug("dtTensorToImage: using HunyuanVideo 16-channel conversion", category: .images)
                         convertHunyuanVideoToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .ltx2, .ltx23:
                         // LTX-2/2.3 uses Flux-like coefficients as a reasonable fallback
-                        DrawThingsClientLogger.debug("dtTensorToImage: using Flux 16-channel conversion for LTX fallback")
+                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion for LTX fallback", category: .images)
                         convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .flux, .zImage, .unknown:
                         // Z Image uses Flux-like latent space
-                        DrawThingsClientLogger.debug("dtTensorToImage: using Flux 16-channel conversion (family=\(family))")
+                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion (family=\(family))", category: .images)
                         convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     default:
                         // Default to Flux coefficients for other 16-channel models
-                        DrawThingsClientLogger.debug("dtTensorToImage: using Flux 16-channel conversion (default for \(family))")
+                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion (default for \(family))", category: .images)
                         convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     }
                 } else if channels == 4 {
@@ -724,17 +724,17 @@ public struct ImageHelpers {
                     switch family {
                     case .sd1:
                         // SD 1.x / 2.x / SVD use a distinct matrix from SDXL.
-                        DrawThingsClientLogger.debug("dtTensorToImage: using 4-channel SD1 conversion")
+                        DTLogger.debug("dtTensorToImage: using 4-channel SD1 conversion", category: .images)
                         convertSD1ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .kandinsky:
-                        DrawThingsClientLogger.debug("dtTensorToImage: using 4-channel Kandinsky (OKLab) conversion")
+                        DTLogger.debug("dtTensorToImage: using 4-channel Kandinsky (OKLab) conversion", category: .images)
                         convertKandinskyToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     case .wurstchen:
-                        DrawThingsClientLogger.debug("dtTensorToImage: using 4-channel Würstchen conversion")
+                        DTLogger.debug("dtTensorToImage: using 4-channel Würstchen conversion", category: .images)
                         convertWurstchenToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     default:
                         // SDXL / SSD-1B / PixArt / AuraFlow / unknown.
-                        DrawThingsClientLogger.debug("dtTensorToImage: using 4-channel SDXL conversion (family=\(family))")
+                        DTLogger.debug("dtTensorToImage: using 4-channel SDXL conversion (family=\(family))", category: .images)
                         convert4ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
                     }
                 } else {
@@ -989,7 +989,7 @@ public struct ImageHelpers {
     private static func hiDreamO1PatchToImage(_ tensorData: Data, imageWidth: Int, imageHeight: Int, channels: Int) throws -> PlatformImage {
         let patchSize = 32
         guard channels == 3 * patchSize * patchSize else {
-            DrawThingsClientLogger.error("hiDreamO1PatchToImage: unexpected channel count \(channels), expected \(3 * patchSize * patchSize)")
+            DTLogger.error("hiDreamO1PatchToImage: unexpected channel count \(channels), expected \(3 * patchSize * patchSize)", category: .images)
             throw ImageError.conversionFailed
         }
 
@@ -1033,7 +1033,7 @@ public struct ImageHelpers {
             }
         }
 
-        DrawThingsClientLogger.debug("hiDreamO1PatchToImage: decoded \(imageWidth)x\(imageHeight) patches -> \(outputWidth)x\(outputHeight) image")
+        DTLogger.debug("hiDreamO1PatchToImage: decoded \(imageWidth)x\(imageHeight) patches -> \(outputWidth)x\(outputHeight) image", category: .images)
         return try createImageFromRGBData(rgbData, width: outputWidth, height: outputHeight)
     }
 
@@ -1557,7 +1557,7 @@ public struct ImageHelpers {
         // Check if the image has an alpha channel
         let alphaInfo = cgImage.alphaInfo
         guard alphaInfo != .none && alphaInfo != .noneSkipFirst && alphaInfo != .noneSkipLast else {
-            DrawThingsClientLogger.debug("🔍 hasTransparency: Image has no alpha channel, returning false")
+            DTLogger.debug("🔍 hasTransparency: Image has no alpha channel, returning false", category: .images)
             return false
         }
 
@@ -1587,13 +1587,13 @@ public struct ImageHelpers {
                 let pixelIndex = y * bytesPerRow + x * 4
                 let alpha = pixelData[pixelIndex + 3] // Alpha is last in RGBA
                 if alpha < 255 {
-                    DrawThingsClientLogger.debug("🔍 hasTransparency: Found transparent pixel at (\(x), \(y)), alpha=\(alpha)")
+                    DTLogger.debug("🔍 hasTransparency: Found transparent pixel at (\(x), \(y)), alpha=\(alpha)", category: .images)
                     return true
                 }
             }
         }
 
-        DrawThingsClientLogger.debug("🔍 hasTransparency: All pixels are opaque")
+        DTLogger.debug("🔍 hasTransparency: All pixels are opaque", category: .images)
         return false
     }
 
@@ -1683,7 +1683,7 @@ public struct ImageHelpers {
             }
         }
 
-        DrawThingsClientLogger.debug("🎭 Created inpainting mask from alpha channel: \(width)x\(height), size: \(maskData.count) bytes")
+        DTLogger.debug("🎭 Created inpainting mask from alpha channel: \(width)x\(height), size: \(maskData.count) bytes", category: .images)
 
         return maskData
     }

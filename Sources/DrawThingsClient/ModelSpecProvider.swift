@@ -27,7 +27,7 @@ enum ModelSpecProvider {
         guard let url = Bundle.module.url(forResource: "models", withExtension: "json"),
               let data = try? Data(contentsOf: url)
         else {
-            DrawThingsClientLogger.notice("models.json not found in bundle — override will be empty")
+            DTLogger.warning("models.json not found in bundle — override will be empty", category: .models)
             return Data()
         }
         return data
@@ -58,9 +58,9 @@ enum ModelSpecProvider {
                 specsByFile[file] = spec
             }
             lock.unlock()
-            DrawThingsClientLogger.debug("Fetched \(remote.count) model specs from remote API")
+            DTLogger.debug("Fetched \(remote.count) model specs from remote API", category: .models)
         } catch {
-            DrawThingsClientLogger.notice("Failed to fetch remote models.json: \(error.localizedDescription)")
+            DTLogger.warning("Failed to fetch remote models.json: \(error.localizedDescription)", category: .models)
         }
     }
 

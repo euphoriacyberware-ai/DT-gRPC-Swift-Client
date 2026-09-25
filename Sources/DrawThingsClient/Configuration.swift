@@ -523,7 +523,7 @@ public struct DrawThingsConfiguration: Sendable {
             controlT.globalAveragePooling = control.globalAveragePooling
             controlT.downSamplingRate = 1.0
             controlT.targetBlocks = []
-            DrawThingsClientLogger.debug("Added ControlNet control: \(control.file)")
+            DTLogger.debug("Added ControlNet control: \(control.file)", category: .configuration)
             return controlT
         }
 
@@ -541,7 +541,7 @@ public struct DrawThingsConfiguration: Sendable {
             inpaintControl.targetBlocks = []
             inpaintControl.file = ""  // Empty file - mask is sent separately
             controlsArray.append(inpaintControl)
-            DrawThingsClientLogger.debug("Added inpaint control to configuration")
+            DTLogger.debug("Added inpaint control to configuration", category: .configuration)
         }
 
         configT.controls = controlsArray
@@ -556,10 +556,10 @@ public struct DrawThingsConfiguration: Sendable {
         }
 
         // Dump key generation parameters for debugging
-        DrawThingsClientLogger.debug("FlatBuffer config: model=\(configT.model ?? "nil"), sampler=\(configT.sampler.rawValue) (\(configT.sampler)), steps=\(configT.steps), guidanceScale=\(configT.guidanceScale), strength=\(configT.strength), shift=\(configT.shift), seed=\(configT.seed), seedMode=\(configT.seedMode.rawValue)")
-        DrawThingsClientLogger.debug("  guidance: guidanceEmbed=\(configT.guidanceEmbed), speedUpWithGuidanceEmbed=\(configT.speedUpWithGuidanceEmbed), resolutionDependentShift=\(configT.resolutionDependentShift), clipSkip=\(configT.clipSkip)")
-        DrawThingsClientLogger.debug("  size: \(configT.startWidth * 64)x\(configT.startHeight * 64), t5TextEncoder=\(configT.t5TextEncoder), clipWeight=\(configT.clipWeight)")
-        DrawThingsClientLogger.debug("  controls: \(configT.controls.count), loras: \(configT.loras.count)")
+        DTLogger.debug("FlatBuffer config: model=\(configT.model ?? "nil"), sampler=\(configT.sampler.rawValue) (\(configT.sampler)), steps=\(configT.steps), guidanceScale=\(configT.guidanceScale), strength=\(configT.strength), shift=\(configT.shift), seed=\(configT.seed), seedMode=\(configT.seedMode.rawValue)", category: .configuration)
+        DTLogger.debug("  guidance: guidanceEmbed=\(configT.guidanceEmbed), speedUpWithGuidanceEmbed=\(configT.speedUpWithGuidanceEmbed), resolutionDependentShift=\(configT.resolutionDependentShift), clipSkip=\(configT.clipSkip)", category: .configuration)
+        DTLogger.debug("  size: \(configT.startWidth * 64)x\(configT.startHeight * 64), t5TextEncoder=\(configT.t5TextEncoder), clipWeight=\(configT.clipWeight)", category: .configuration)
+        DTLogger.debug("  controls: \(configT.controls.count), loras: \(configT.loras.count)", category: .configuration)
 
         // Pack into FlatBuffer — match the upstream Draw Things app's
         // serialization: default FlatBufferBuilder (no serializeDefaults)

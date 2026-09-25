@@ -148,21 +148,21 @@ public actor DrawThingsService {
             if let modelFile = modelFile {
                 // If not in bundled data, ensure the remote fetch has completed.
                 if !ModelSpecProvider.hasSpec(for: modelFile) {
-                    DrawThingsClientLogger.debug("Model \(modelFile) not in bundled specs, awaiting remote fetch")
+                    DTLogger.debug("Model \(modelFile) not in bundled specs, awaiting remote fetch", category: .models)
                     await ModelSpecProvider.fetchRemoteSpecs()
                 }
                 if ModelSpecProvider.hasSpec(for: modelFile) {
-                    DrawThingsClientLogger.debug("Using model spec for: \(modelFile), loras: \(loraFiles)")
+                    DTLogger.debug("Using model spec for: \(modelFile), loras: \(loraFiles)", category: .models)
                     // Build override with model spec + LoRA specs (known or synthetic).
                     // Merge with echo cache for controlNets/textualInversions/upscalers.
                     var merged = self.models ?? MetadataOverride()
                     let specOverride = ModelSpecProvider.overrideForModel(modelFile, loraFiles: loraFiles)
                     merged.models = specOverride.models
                     merged.loras = specOverride.loras
-                    DrawThingsClientLogger.debug("  override: models=\(merged.models.count)B, loras=\(merged.loras.count)B")
+                    DTLogger.debug("  override: models=\(merged.models.count)B, loras=\(merged.loras.count)B", category: .models)
                     effectiveOverride = merged
                 } else {
-                    DrawThingsClientLogger.debug("No spec found for \(modelFile), using echo cache")
+                    DTLogger.debug("No spec found for \(modelFile), using echo cache", category: .models)
                     effectiveOverride = self.models
                 }
             } else {
@@ -178,7 +178,7 @@ public actor DrawThingsService {
             $0.negativePrompt = negativePrompt
             $0.configuration = configuration
 
-            DrawThingsClientLogger.debug("Sending request: prompt='\(prompt)', config size=\(configuration.count) bytes")
+            DTLogger.debug("Sending request: prompt='\(prompt)', config size=\(configuration.count) bytes", category: .grpc)
 
             // The ImageGenerationRequest uses content-addressable storage:
             // - `image` / `mask` fields hold the SHA256 hash of the tensor data
@@ -189,23 +189,23 @@ public actor DrawThingsService {
                 let hashData = Data(SHA256.hash(data: image))
                 $0.image = hashData
                 casContents.append(image)
-                DrawThingsClientLogger.debug("   Image data: \(image.count) bytes (sha256 referenced)")
+                DTLogger.debug("   Image data: \(image.count) bytes (sha256 referenced)", category: .grpc)
             }
 
             if let mask = mask {
                 let hashData = Data(SHA256.hash(data: mask))
                 $0.mask = hashData
                 casContents.append(mask)
-                DrawThingsClientLogger.debug("   Mask data: \(mask.count) bytes (sha256 referenced)")
+                DTLogger.debug("   Mask data: \(mask.count) bytes (sha256 referenced)", category: .grpc)
             }
 
             $0.hints = hints
             if !hints.isEmpty {
-                DrawThingsClientLogger.debug("   Hints: \(hints.count) hint(s)")
+                DTLogger.debug("   Hints: \(hints.count) hint(s)", category: .grpc)
                 for (index, hint) in hints.enumerated() {
-                    DrawThingsClientLogger.debug("      Hint \(index): type='\(hint.hintType)', tensors=\(hint.tensors.count)")
+                    DTLogger.debug("      Hint \(index): type='\(hint.hintType)', tensors=\(hint.tensors.count)", category: .grpc)
                     for (tIndex, tensor) in hint.tensors.enumerated() {
-                        DrawThingsClientLogger.debug("         Tensor \(tIndex): size=\(tensor.tensor.count) bytes, weight=\(tensor.weight)")
+                        DTLogger.debug("         Tensor \(tIndex): size=\(tensor.tensor.count) bytes, weight=\(tensor.weight)", category: .grpc)
                     }
                 }
             }
@@ -251,33 +251,33 @@ public actor DrawThingsService {
 
             let call = client.generateImage(request, callOptions: callOptions) { response in
                 responseCount += 1
-                DrawThingsClientLogger.debug("Response #\(responseCount) received:")
-                DrawThingsClientLogger.debug("   - generatedImages.count: \(response.generatedImages.count)")
-                DrawThingsClientLogger.debug("   - generatedAudio.count: \(response.generatedAudio.count)")
-                DrawThingsClientLogger.debug("   - chunkState: \(response.chunkState)")
-                DrawThingsClientLogger.debug("   - hasCurrentSignpost: \(response.hasCurrentSignpost)")
-                DrawThingsClientLogger.debug("   - hasDownloadSize: \(response.hasDownloadSize)")
-                DrawThingsClientLogger.debug("   - hasPreviewImage: \(response.hasPreviewImage)")
-                DrawThingsClientLogger.debug("   - hasScaleFactor: \(response.hasScaleFactor)")
-                DrawThingsClientLogger.debug("   - tags.count: \(response.tags.count)")
-                DrawThingsClientLogger.debug("   - signposts.count: \(response.signposts.count)")
+                DTLogger.debug("Response #\(responseCount) received:", category: .grpc)
+                DTLogger.debug("   - generatedImages.count: \(response.generatedImages.count)", category: .grpc)
+                DTLogger.debug("   - generatedAudio.count: \(response.generatedAudio.count)", category: .grpc)
+                DTLogger.debug("   - chunkState: \(response.chunkState)", category: .grpc)
+                DTLogger.debug("   - hasCurrentSignpost: \(response.hasCurrentSignpost)", category: .grpc)
+                DTLogger.debug("   - hasDownloadSize: \(response.hasDownloadSize)", category: .grpc)
+                DTLogger.debug("   - hasPreviewImage: \(response.hasPreviewImage)", category: .grpc)
+                DTLogger.debug("   - hasScaleFactor: \(response.hasScaleFactor)", category: .grpc)
+                DTLogger.debug("   - tags.count: \(response.tags.count)", category: .grpc)
+                DTLogger.debug("   - signposts.count: \(response.signposts.count)", category: .grpc)
 
                 if response.hasDownloadSize {
-                    DrawThingsClientLogger.debug("   - downloadSize: \(response.downloadSize)")
+                    DTLogger.debug("   - downloadSize: \(response.downloadSize)", category: .grpc)
                 }
 
                 if response.hasScaleFactor {
-                    DrawThingsClientLogger.debug("   - scaleFactor: \(response.scaleFactor)")
+                    DTLogger.debug("   - scaleFactor: \(response.scaleFactor)", category: .grpc)
                 }
 
                 if !response.tags.isEmpty {
-                    DrawThingsClientLogger.debug("   - tags: \(response.tags)")
+                    DTLogger.debug("   - tags: \(response.tags)", category: .grpc)
                 }
 
                 if !response.signposts.isEmpty {
-                    DrawThingsClientLogger.debug("   - signposts details:")
+                    DTLogger.debug("   - signposts details:", category: .grpc)
                     for (idx, signpost) in response.signposts.enumerated() {
-                        DrawThingsClientLogger.debug("     [\(idx)]: \(signpost)")
+                        DTLogger.debug("     [\(idx)]: \(signpost)", category: .grpc)
                     }
                 }
 
@@ -291,12 +291,12 @@ public actor DrawThingsService {
                 // Track expected download size
                 if response.hasDownloadSize && response.downloadSize > 0 {
                     expectedDownloadSize = response.downloadSize
-                    DrawThingsClientLogger.debug("Server indicated download size: \(response.downloadSize) bytes")
+                    DTLogger.debug("Server indicated download size: \(response.downloadSize) bytes", category: .grpc)
                 }
 
                 // Capture preview image (the last one will be the final result)
                 if response.hasPreviewImage {
-                    DrawThingsClientLogger.debug("Preview image received: \(response.previewImage.count) bytes")
+                    DTLogger.debug("Preview image received: \(response.previewImage.count) bytes", category: .grpc)
                     lastPreviewImage = response.previewImage
 
                     // Send preview to handler
@@ -313,9 +313,9 @@ public actor DrawThingsService {
                             images[0] = lastImageChunk + images[0]
                             lastImageChunk = Data()
                         }
-                        DrawThingsClientLogger.debug("Received \(images.count) image(s) (final chunk):")
+                        DTLogger.debug("Received \(images.count) image(s) (final chunk):", category: .grpc)
                         for (idx, img) in images.enumerated() {
-                            DrawThingsClientLogger.debug("   - Image \(idx): \(img.count) bytes")
+                            DTLogger.debug("   - Image \(idx): \(img.count) bytes", category: .grpc)
                         }
                         generatedImages.append(contentsOf: images)
                     } else {
@@ -323,7 +323,7 @@ public actor DrawThingsService {
                         for img in images {
                             lastImageChunk.append(img)
                         }
-                        DrawThingsClientLogger.debug("Accumulated image chunk: \(lastImageChunk.count) bytes so far")
+                        DTLogger.debug("Accumulated image chunk: \(lastImageChunk.count) bytes so far", category: .grpc)
                     }
                 }
 
@@ -335,7 +335,7 @@ public actor DrawThingsService {
                             audio[0] = lastAudioChunk + audio[0]
                             lastAudioChunk = Data()
                         }
-                        DrawThingsClientLogger.debug("Received \(audio.count) audio tensor(s) (final chunk)")
+                        DTLogger.debug("Received \(audio.count) audio tensor(s) (final chunk)", category: .grpc)
                         for audioData in audio {
                             Task {
                                 await audioHandler(audioData)
@@ -345,7 +345,7 @@ public actor DrawThingsService {
                         for a in audio {
                             lastAudioChunk.append(a)
                         }
-                        DrawThingsClientLogger.debug("Accumulated audio chunk: \(lastAudioChunk.count) bytes so far")
+                        DTLogger.debug("Accumulated audio chunk: \(lastAudioChunk.count) bytes so far", category: .grpc)
                     }
                 }
             }
@@ -356,36 +356,36 @@ public actor DrawThingsService {
 
             call.status.whenComplete { result in
                 guard !hasResumed else {
-                    DrawThingsClientLogger.notice("Attempted to resume continuation twice")
+                    DTLogger.warning("Attempted to resume continuation twice", category: .grpc)
                     return
                 }
                 hasResumed = true
 
-                DrawThingsClientLogger.debug("Stream completed after \(responseCount) responses")
+                DTLogger.debug("Stream completed after \(responseCount) responses", category: .grpc)
                 switch result {
                 case .success:
-                    DrawThingsClientLogger.debug("gRPC call completed successfully")
+                    DTLogger.debug("gRPC call completed successfully", category: .grpc)
 
                     // If no images were received directly but we have a preview image, use it
                     if generatedImages.isEmpty && lastPreviewImage != nil {
-                        DrawThingsClientLogger.info("No generatedImages received, using last preview image as result")
+                        DTLogger.info("No generatedImages received, using last preview image as result", category: .grpc)
                         generatedImages.append(lastPreviewImage!)
                     }
 
-                    DrawThingsClientLogger.debug("Total images to return: \(generatedImages.count)")
+                    DTLogger.debug("Total images to return: \(generatedImages.count)", category: .grpc)
                     if generatedImages.isEmpty && expectedDownloadSize != nil {
-                        DrawThingsClientLogger.notice("Warning: Server indicated \(expectedDownloadSize!) bytes but no images received")
-                        DrawThingsClientLogger.info("The server may require a separate request to fetch the image data")
+                        DTLogger.warning("Warning: Server indicated \(expectedDownloadSize!) bytes but no images received", category: .grpc)
+                        DTLogger.info("The server may require a separate request to fetch the image data", category: .grpc)
                     }
                     continuation.resume(returning: generatedImages)
                 case .failure(let err):
                     if callBox.wasCancelled {
                         // The failure is our own RST_STREAM — surface it as
                         // Swift cancellation, not a server error.
-                        DrawThingsClientLogger.info("gRPC call cancelled by caller")
+                        DTLogger.info("gRPC call cancelled by caller", category: .grpc)
                         continuation.resume(throwing: CancellationError())
                     } else {
-                        DrawThingsClientLogger.error("gRPC call failed: \(err)")
+                        DTLogger.error("gRPC call failed: \(err)", category: .grpc)
                         continuation.resume(throwing: err)
                     }
                 }
