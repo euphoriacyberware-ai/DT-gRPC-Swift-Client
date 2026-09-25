@@ -18,6 +18,7 @@ DrawThingsClient is the base library of the DrawThings Swift family. It speaks t
 - **Image Utilities**: Built-in helpers for image conversion and manipulation
 - **Type Safety**: Full Swift type safety with generated protobuf code
 - **Legacy Processor Support**: Library runs on both Intel and Apple Silicon processors
+- **Unified Logging**: `DTLogger`, an `os.log`-based logger shared by all DrawThings packages. One setting turns on diagnostics from every layer (see [Logging & Debugging](#logging--debugging))
 
 ## Feature Status
 
