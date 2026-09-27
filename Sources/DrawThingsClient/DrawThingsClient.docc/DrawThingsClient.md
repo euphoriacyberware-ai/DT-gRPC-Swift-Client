@@ -12,7 +12,10 @@ server, describe a generation with a ``GenerationRequest``, and either stream it
 let service = try DrawThingsService(address: "localhost:7859")
 let request = GenerationRequest(
     prompt: "A lighthouse on a rocky coast at sunset",
-    configuration: DrawThingsConfiguration(width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt")
+    configuration: DrawThingsConfiguration(
+        width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
+        sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+    )
 )
 for try await event in service.stream(request) {
     if case .completed(let result) = event { save(result.images) }

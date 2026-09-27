@@ -157,9 +157,15 @@ struct ServerIntegrationTests {
         await service.shutdown()
     }
 
+    /// As the Draw Things server does when generation fails on its side: previews, then a final
+    /// message without images. A preview must not be passed off as the result.
     @Test func emptyResultIsAnError() async throws {
+        let preview = try FakeResponses.imageTensor(width: 64, height: 64)
         let server = try await FakeDrawThingsServer { _, writer in
             try await writer.write(FakeResponses.textEncoded)
+            try await writer.write(FakeResponses.sampling(1))
+            try await writer.write(FakeResponses.preview(preview))
+            try await writer.write(ImageGenerationResponse.with { $0.chunkState = .lastChunk })
         }
         defer { Task { await server.stop() } }
         let service = server.makeService()

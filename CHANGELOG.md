@@ -52,6 +52,8 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - Image encoding and decoding use Accelerate (2048×2048 encode 25 → 9 ms, decode 15 → 2 ms).
 
 ### Fixed
+- A generation that failed on the server was returned as a success, with the last preview (a
+  small latent-sized image) as its result. It now throws `DrawThingsError.incompleteResponse`.
 - Audio could be missing from results, and progress and previews could arrive out of order.
 - SwiftUI progress never updated (`ImageGenerationProgress` was a nested `ObservableObject`).
 - Progress wasn't cleared after an error.

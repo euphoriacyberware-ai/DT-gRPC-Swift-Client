@@ -31,7 +31,11 @@ struct ContentView: View {
             }
             Button("Generate") {
                 Task {
-                    let result = try await session.generate(prompt: "A lighthouse at sunset")
+                    let configuration = DrawThingsConfiguration(
+                        width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
+                        sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+                    )
+                    let result = try await session.generate(prompt: "A lighthouse at sunset", configuration: configuration)
                     image = result.images.first
                 }
             }

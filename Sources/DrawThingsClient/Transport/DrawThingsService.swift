@@ -258,7 +258,6 @@ public actor DrawThingsService {
                 var assembler = ResponseAssembler()
                 var images: [CGImage] = []
                 var audio: [GeneratedAudio] = []
-                var lastPreview: Data?
                 for try await message in response.messages {
                     if message.hasCurrentSignpost, let stage = GenerationStage(message.currentSignpost) {
                         var step: Int?
@@ -273,7 +272,6 @@ public actor DrawThingsService {
                             item: Int(download.item), itemCount: Int(download.itemsExpected))))
                     }
                     if message.hasPreviewImage {
-                        lastPreview = message.previewImage
                         // A preview that can't be decoded must not fail the generation.
                         if let preview = try? ImageHelpers.dtTensorToCGImage(message.previewImage, modelFamily: media.family) {
                             emit(.preview(preview))
@@ -294,15 +292,10 @@ public actor DrawThingsService {
                 if assembler.hasIncompleteTensor {
                     throw DrawThingsError.incompleteResponse("the stream ended in the middle of a chunked tensor")
                 }
-                if images.isEmpty, let lastPreview {
-                    // Some servers only send the final image as a preview.
-                    DTLogger.info("No generated images received, using last preview image as result", category: .grpc)
-                    let image = try Self.decodeImage(lastPreview, family: media.family)
-                    emit(.image(image, index: 0))
-                    images.append(image)
-                }
+                // The server ends without images when generation fails on its side (it logs
+                // "empty final images"), for example with settings the model doesn't support.
                 guard !images.isEmpty else {
-                    throw DrawThingsError.incompleteResponse("the server finished without returning an image")
+                    throw DrawThingsError.incompleteResponse("the server finished without returning an image; check the server log and the configuration's sampler, guidance and shift for this model")
                 }
                 return (images, audio)
             }

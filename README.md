@@ -192,7 +192,10 @@ Sizes are in pixels and are sent to the server in units of 64, rounded down. `va
 ### Image to image and inpainting
 
 ```swift
-var configuration = DrawThingsConfiguration(width: 768, height: 768, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt", strength: 0.6)
+var configuration = DrawThingsConfiguration(
+    width: 768, height: 768, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
+    sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3, strength: 0.6
+)
 let request = GenerationRequest(prompt: "A red fox, watercolor", configuration: configuration, image: photo)
 
 // Inpainting: pass a mask whose transparent pixels mark the area to regenerate.
