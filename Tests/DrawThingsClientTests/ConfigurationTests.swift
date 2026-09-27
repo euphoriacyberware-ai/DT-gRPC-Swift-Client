@@ -146,13 +146,13 @@ struct ConfigurationTests {
         let object = try #require(JSONSerialization.jsonObject(with: Data(try configuration.toJSON(includeSeed: false).utf8)) as? [String: Any])
         #expect(object["seed"] as? Int == -1)
         #expect(object["id"] as? Int == 0)
-        #expect(object["colorCalibration"] as? String == "disabled")
+        #expect(object["colorCalibration"] as? String == "none")
         #expect(object["compressionArtifacts"] as? String == "disabled")
         #expect((object["loras"] as? [[String: Any]])?.first?["mode"] as? String == "base")
         let control = try #require((object["controls"] as? [[String: Any]])?.first)
         #expect(control["controlImportance"] as? String == "prompt")
         #expect(control["inputOverride"] as? String == "inpaint")
-        #expect(object["refinerModel"] as? String == "")
+        #expect(object["refinerModel"] is NSNull)
         #expect(object["enableInpainting"] == nil)
     }
 

@@ -11,14 +11,20 @@
 
 import Foundation
 
-// Draw Things' JSON configuration format: the format of the app's "Copy Configuration" and of
-// its scripting API (upstream `JSGenerationConfiguration`). Sizes are in pixels, enums are
-// written the way the app writes them, and a negative seed means "random".
+// Draw Things' JSON configuration format (upstream `JSGenerationConfiguration`), as pasted into
+// and copied from the app. Sizes are in pixels, enums are written the way the app writes them,
+// and a negative seed means "random".
 //
-// Encoding writes every key the app requires, so the output can be pasted back into Draw
-// Things. Decoding is lenient: missing keys take the configuration's defaults, and older
-// spellings written by DrawThingsKit (integer LoRA modes, `controlMode`, "disabled" color
-// calibration) are accepted.
+// The app produces two shapes of it:
+// - "Copy Configuration" writes a compact subset: the settings relevant to the current model,
+//   with "" for unset names. Pasting it only changes those settings, so it is an overlay.
+// - Complete exports (such as GetConfigPro) write every key, with null for unset names.
+//
+// Encoding writes the complete shape, so the output reproduces the whole configuration when
+// pasted into Draw Things. Decoding accepts both shapes and is lenient: missing keys take this
+// type's defaults, and older spellings written by DrawThingsKit (integer LoRA modes,
+// `controlMode`, "disabled" color calibration) are accepted. To apply a compact copy the way
+// the app does, merge it onto a base configuration with ``DrawThingsConfiguration/mergeJSON(_:)``.
 
 // MARK: - LoRAConfig
 
@@ -158,8 +164,8 @@ extension CompressionMethod {
 }
 
 extension ColorCalibration {
-    // The app exports "disabled"; its scripting API writes "none". Both decode as disabled.
-    var jsonName: String { self == .lab ? "lab" : "disabled" }
+    // Current app versions write "none"; older exports wrote "disabled". Both decode as disabled.
+    var jsonName: String { self == .lab ? "lab" : "none" }
 
     init(jsonName: String) {
         self = jsonName.lowercased() == "lab" ? .lab : .disabled
@@ -341,7 +347,7 @@ extension DrawThingsConfiguration: Codable {
         try c.encode(diffusionTileWidth, forKey: .diffusionTileWidth)
         try c.encode(diffusionTileHeight, forKey: .diffusionTileHeight)
         try c.encode(diffusionTileOverlap, forKey: .diffusionTileOverlap)
-        try c.encode(upscaler ?? "", forKey: .upscaler)
+        try c.encode(upscaler, forKey: .upscaler)
         try c.encode(upscalerScaleFactor, forKey: .upscalerScaleFactor)
         try c.encode(imageGuidanceScale, forKey: .imageGuidanceScale)
         try c.encode(seedMode.rawValue, forKey: .seedMode)
@@ -351,11 +357,11 @@ extension DrawThingsConfiguration: Codable {
         try c.encode(maskBlur, forKey: .maskBlur)
         try c.encode(maskBlurOutset, forKey: .maskBlurOutset)
         try c.encode(sharpness, forKey: .sharpness)
-        try c.encode(faceRestoration ?? "", forKey: .faceRestoration)
+        try c.encode(faceRestoration, forKey: .faceRestoration)
         try c.encode(clipWeight, forKey: .clipWeight)
         try c.encode(negativePromptForImagePrior, forKey: .negativePromptForImagePrior)
         try c.encode(imagePriorSteps, forKey: .imagePriorSteps)
-        try c.encode(refinerModel ?? "", forKey: .refinerModel)
+        try c.encode(refinerModel, forKey: .refinerModel)
         try c.encode(originalImageHeight, forKey: .originalImageHeight)
         try c.encode(originalImageWidth, forKey: .originalImageWidth)
         try c.encode(cropTop, forKey: .cropTop)
@@ -387,9 +393,9 @@ extension DrawThingsConfiguration: Codable {
         try c.encode(preserveOriginalAfterInpaint, forKey: .preserveOriginalAfterInpaint)
         try c.encode(t5TextEncoder, forKey: .t5TextEncoder)
         try c.encode(separateClipL, forKey: .separateClipL)
-        try c.encodeIfPresent(clipLText, forKey: .clipLText)
+        try c.encode(clipLText, forKey: .clipLText)
         try c.encode(separateOpenClipG, forKey: .separateOpenClipG)
-        try c.encodeIfPresent(openClipGText, forKey: .openClipGText)
+        try c.encode(openClipGText, forKey: .openClipGText)
         try c.encode(speedUpWithGuidanceEmbed, forKey: .speedUpWithGuidanceEmbed)
         try c.encode(guidanceEmbed, forKey: .guidanceEmbed)
         try c.encode(resolutionDependentShift, forKey: .resolutionDependentShift)
@@ -428,8 +434,9 @@ extension DrawThingsConfiguration {
         return String(decoding: try encoder.encode(configuration), as: UTF8.self)
     }
 
-    /// Parses Draw Things JSON, for example from the app's "Copy Configuration". Missing keys
-    /// take their default values.
+    /// Parses Draw Things JSON, either a complete export or the app's compact "Copy
+    /// Configuration". Missing keys take their default values; to apply a compact copy on top of
+    /// existing settings, as pasting into the app does, use ``mergeJSON(_:)`` instead.
     public static func fromJSON(_ json: String) throws -> DrawThingsConfiguration {
         try JSONDecoder().decode(DrawThingsConfiguration.self, from: Data(json.utf8))
     }

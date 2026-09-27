@@ -68,7 +68,8 @@ let package = Package(
         ),
         .testTarget(
             name: "DrawThingsClientTests",
-            dependencies: ["DrawThingsClient", "DrawThingsClientUI", "CFpzip"]
+            dependencies: ["DrawThingsClient", "DrawThingsClientUI", "CFpzip"],
+            resources: [.copy("Fixtures")]
         ),
     ],
     swiftLanguageModes: [.v6],
