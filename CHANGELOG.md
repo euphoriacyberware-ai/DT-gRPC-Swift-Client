@@ -16,6 +16,9 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
   `GenerationResult`. Cancelling cancels the generation on the server.
 - `GenerationRequest`, `GenerationProgress` and `GenerationResult` value types.
 - `DrawThingsSession`, an `@Observable` session for SwiftUI (the library contains no views).
+- `DrawThingsQueue` product (formerly the separate DrawThingsQueue package): an `@Observable`
+  `GenerationQueue` built on the event stream, with pause, cancel, retry, reordering, `AsyncStream`
+  events and results, and saved queues that keep input images and hints and read 0.x files.
 - `ConnectionOptions`: TLS verification policy, shared secret, client identity, message size,
   request timeout and model spec source. `ServerEndpoint` parses IPv6 addresses.
 - `MediaProfile` and `GeneratedAudio` (planar PCM, `AVAudioPCMBuffer` and in-memory WAV).

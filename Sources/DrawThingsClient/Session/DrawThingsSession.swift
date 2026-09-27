@@ -31,7 +31,7 @@ import Observation
 /// ```
 ///
 /// One generation runs at a time; ``generate(_:)`` throws ``SessionError/busy`` while another is
-/// in progress. For queueing, use DrawThingsQueue or call `DrawThingsService` directly.
+/// in progress. For queueing, use `GenerationQueue` in the DrawThingsQueue product.
 @MainActor
 @Observable
 public final class DrawThingsSession {

@@ -12,6 +12,10 @@ let package = Package(
             name: "DrawThingsClient",
             targets: ["DrawThingsClient"]
         ),
+        .library(
+            name: "DrawThingsQueue",
+            targets: ["DrawThingsQueue"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
@@ -58,10 +62,18 @@ let package = Package(
                 .copy("Resources/models.json"),
             ]
         ),
+        .target(
+            name: "DrawThingsQueue",
+            dependencies: [
+                "DrawThingsClient",
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+            ]
+        ),
         .testTarget(
             name: "DrawThingsClientTests",
             dependencies: [
                 "DrawThingsClient",
+                "DrawThingsQueue",
                 "CFpzip",
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),

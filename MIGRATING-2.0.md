@@ -187,6 +187,38 @@ must become `@_exported import struct`.
 `decodingFailed`, `incompleteResponse`, `server(code:message:)`. Cancellation is always
 `CancellationError`.
 
+## DrawThingsQueue 0.x
+
+The queue is now the `DrawThingsQueue` product of this package; the separate DrawThingsQueue
+repository stays at 0.1.1 for 1.x apps. Add
+`.product(name: "DrawThingsQueue", package: "DrawThings-Swift")` and remove the old package.
+
+| DrawThingsQueue 0.x | 2.0 |
+|---|---|
+| `DrawThingsQueue` (`ObservableObject`) | `GenerationQueue` (`@Observable`); the module is still `DrawThingsQueue` |
+| `init(address:useTLS:sharedSecret:storage:)` | `init(service:storage:)`; TLS and the secret are in the service's `ConnectionOptions` |
+| `updateConnection(...)` | set `queue.service` |
+| Queue's own `GenerationRequest` (`PlatformImage` inputs, `name`) | the client's `GenerationRequest` (`CGImage` inputs); pass `name:` to `enqueue` |
+| Queue's own `GenerationResult` (`images: [PlatformImage]`, `audioData: [Data]`) | the client's `GenerationResult` (`images: [CGImage]`, `platformImages`, `audio`) |
+| `pendingRequests`, `currentRequest`, `completedResults`, `errors` | `pending`, `current`, `finished` (`QueueJob` values with a `status`), `jobs` |
+| `currentProgress` (`ObservableObject` with `previewImage`) | `progress: GenerationProgress?`, `preview: CGImage?` |
+| `lastError`, `pauseForReconnection(error:)` | `pauseReason`, `pause(reason:)` |
+| `status(for:)`, `result(for:)` | `job(_:)?.status`, `job(_:)?.result` |
+| `cancel(id:)`, `moveRequests(from:to:)`, `retryCount(for:)` | `cancel(_:)`, `movePending(fromOffsets:toOffset:)`, `job(_:)?.retryCount` |
+| `clearErrors()` | `clearFailed()`; also `clearFinished()` |
+| `events` (Combine `PassthroughSubject<JobEvent, Never>`) | `events: AsyncStream<QueueEvent>` |
+| `results: AsyncStream<GenerationResult>` | unchanged |
+| `loadPersistedRequests()` | `try await restore()` |
+| `modelFamilyProvider`, `audioSampleRateProvider` | removed: set `GenerationRequest.modelFamily` / `audioSampleRate` when the file name isn't enough |
+
+Behavior changes:
+
+- Cancelled jobs now appear in `finished` with status `.cancelled`.
+- A lost connection is detected from `DrawThingsError.connectionFailed` instead of matching words
+  in the error message.
+- Saved queues keep input images, masks, hints and overrides. Files saved by 0.x (same default
+  location) are read, without those.
+
 ## Media for video apps (DrawThingsVideoKit)
 
 `GenerationResult` carries what VideoKit previously took from DrawThingsQueue:

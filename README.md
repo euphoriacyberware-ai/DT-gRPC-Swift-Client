@@ -45,15 +45,17 @@ dependencies: [
 ]
 ```
 
-Then add the product to your target:
+Then add the products you use to your target:
 
 ```swift
 .product(name: "DrawThingsClient", package: "DrawThings-Swift"),
+.product(name: "DrawThingsQueue", package: "DrawThings-Swift"),   // optional
 ```
 
 | Product | Contents |
 |---|---|
 | `DrawThingsClient` | `DrawThingsService`, `DrawThingsSession`, configuration and JSON, tensors and image helpers, media types, logging. No SwiftUI or Combine. |
+| `DrawThingsQueue` | `GenerationQueue`: runs many requests in order, with pause, cancel, retry, reordering and saved queues. |
 
 **DrawThings family:** this is the base library that [DrawThingsQueue](https://github.com/euphoriacyberware-ai/DrawThingsQueue), [DrawThingsKit](https://github.com/euphoriacyberware-ai/DrawThingsKit) and [DrawThingsVideoKit](https://github.com/euphoriacyberware-ai/DrawThingsVideoKit) build on.
 
