@@ -11,8 +11,8 @@
 
 import AVFoundation
 import Foundation
-import SwiftUI
 import Combine
+import Synchronization
 
 #if os(macOS)
 import AppKit
@@ -20,7 +20,7 @@ import AppKit
 import UIKit
 #endif
 
-public struct GenerationOutput: Sendable {
+public struct GenerationOutput {
     public let images: [PlatformImage]
     public let audio: [AVAudioPCMBuffer]
 }
@@ -33,13 +33,13 @@ public class DrawThingsClient: ObservableObject {
     @Published public var currentProgress: ImageGenerationProgress?
     @Published public var lastError: Error?
     
-    public init(address: String, useTLS: Bool = true) throws {
-        self.service = try DrawThingsService(address: address, useTLS: useTLS)
+    public init(address: String, options: ConnectionOptions = .default) throws {
+        self.service = try DrawThingsService(address: address, options: options)
     }
-    
-    public func connect(sharedSecret: String? = nil) async {
+
+    public func connect() async {
         do {
-            _ = try await service.echo(sharedSecret: sharedSecret)
+            try await service.echo()
             isConnected = true
             lastError = nil
         } catch {
@@ -55,8 +55,7 @@ public class DrawThingsClient: ObservableObject {
         image: PlatformImage? = nil,
         mask: PlatformImage? = nil,
         hints: [HintProto] = [],
-        override: MetadataOverride? = nil,
-        sharedSecret: String? = nil
+        override: MetadataOverride? = nil
     ) async throws -> [PlatformImage] {
         let resultData = try await callService(
             prompt: prompt,
@@ -65,8 +64,7 @@ public class DrawThingsClient: ObservableObject {
             image: image,
             mask: mask,
             hints: hints,
-            override: override,
-            sharedSecret: sharedSecret
+            override: override
         )
         let modelFamily = LatentModelFamily.detect(from: configuration.model)
         return try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
@@ -79,10 +77,9 @@ public class DrawThingsClient: ObservableObject {
         image: PlatformImage? = nil,
         mask: PlatformImage? = nil,
         hints: [HintProto] = [],
-        override: MetadataOverride? = nil,
-        sharedSecret: String? = nil
+        override: MetadataOverride? = nil
     ) async throws -> GenerationOutput {
-        var audioBuffers: [AVAudioPCMBuffer] = []
+        let audioTensors = Mutex<[Data]>([])
 
         let resultData = try await callService(
             prompt: prompt,
@@ -92,13 +89,11 @@ public class DrawThingsClient: ObservableObject {
             mask: mask,
             hints: hints,
             override: override,
-            sharedSecret: sharedSecret,
             audioHandler: { audioData in
-                if let buffer = try? AudioHelpers.ccvTensorToAudioBuffer(audioData) {
-                    audioBuffers.append(buffer)
-                }
+                audioTensors.withLock { $0.append(audioData) }
             }
         )
+        let audioBuffers = audioTensors.withLock { $0 }.compactMap { try? AudioHelpers.ccvTensorToAudioBuffer($0) }
 
         let modelFamily = LatentModelFamily.detect(from: configuration.model)
         let images = try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
@@ -113,10 +108,10 @@ public class DrawThingsClient: ObservableObject {
         mask: PlatformImage?,
         hints: [HintProto] = [],
         override: MetadataOverride? = nil,
-        sharedSecret: String? = nil,
-        audioHandler: @escaping (Data) async -> Void = { _ in }
+        audioHandler: @escaping @Sendable (Data) async -> Void = { _ in }
     ) async throws -> [Data] {
         currentProgress = ImageGenerationProgress()
+        defer { currentProgress = nil }
 
         let configData = try configuration.toFlatBufferData()
 
@@ -144,7 +139,6 @@ public class DrawThingsClient: ObservableObject {
             mask: maskData,
             hints: hints,
             override: override,
-            sharedSecret: sharedSecret,
             progressHandler: { [weak self] signpost in
                 await MainActor.run {
                     self?.updateProgress(signpost)
@@ -152,8 +146,6 @@ public class DrawThingsClient: ObservableObject {
             },
             audioHandler: audioHandler
         )
-
-        currentProgress = nil
         return result
     }
     

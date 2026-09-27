@@ -1,11 +1,11 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
     name: "DrawThingsClient",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17)
+        .macOS(.v15),
+        .iOS(.v18)
     ],
     products: [
         .library(
@@ -14,8 +14,10 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.23.0"),
-        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.27.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", from: "2.10.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", from: "2.4.0"),
+        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.38.0"),
         .package(url: "https://github.com/google/flatbuffers.git", exact: "25.9.23"),
     ],
     targets: [
@@ -45,7 +47,9 @@ let package = Package(
         .target(
             name: "DrawThingsClient",
             dependencies: [
-                .product(name: "GRPC", package: "grpc-swift"),
+                .product(name: "GRPCCore", package: "grpc-swift-2"),
+                .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
+                .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
                 .product(name: "FlatBuffers", package: "flatbuffers"),
                 "CFpzip",
@@ -59,5 +63,6 @@ let package = Package(
             dependencies: ["DrawThingsClient", "CFpzip"]
         ),
     ],
+    swiftLanguageModes: [.v6],
     cxxLanguageStandard: .cxx11
 )

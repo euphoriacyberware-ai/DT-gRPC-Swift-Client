@@ -202,22 +202,19 @@ struct TensorDecompression {
             throw DecompressionError.fpzipFailed
         }
 
-        // Determine element sizes
-        let outputElementSize: Int  // size of each element in the final output
-        let fpzipElementSize: Int   // size of each element as stored by fpzip
+        // Size of each element as stored by fpzip; Float16 tensors are stored as Float32
+        // and narrowed after decoding.
+        let fpzipElementSize: Int
         let isFP16: Bool
 
         switch datatype {
         case CCV_16F:
-            outputElementSize = 2  // Float16
-            fpzipElementSize = 4   // fpzip stores as Float32
+            fpzipElementSize = 4
             isFP16 = true
         case CCV_32F:
-            outputElementSize = 4
             fpzipElementSize = 4
             isFP16 = false
         case CCV_64F:
-            outputElementSize = 8
             fpzipElementSize = 8
             isFP16 = false
         default:

@@ -8,7 +8,7 @@ import Common
 
 import FlatBuffers
 
-public enum SamplerType: Int8, Enum, Verifiable {
+public enum SamplerType: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -38,7 +38,7 @@ public enum SamplerType: Int8, Enum, Verifiable {
 }
 
 
-public enum SeedMode: Int8, Enum, Verifiable {
+public enum SeedMode: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -52,7 +52,7 @@ public enum SeedMode: Int8, Enum, Verifiable {
 }
 
 
-public enum ControlMode: Int8, Enum, Verifiable {
+public enum ControlMode: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -65,7 +65,7 @@ public enum ControlMode: Int8, Enum, Verifiable {
 }
 
 
-public enum ControlInputType: Int8, Enum, Verifiable {
+public enum ControlInputType: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -94,7 +94,7 @@ public enum ControlInputType: Int8, Enum, Verifiable {
 }
 
 
-public enum LoRAMode: Int8, Enum, Verifiable {
+public enum LoRAMode: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -107,7 +107,7 @@ public enum LoRAMode: Int8, Enum, Verifiable {
 }
 
 
-public enum CompressionMethod: Int8, Enum, Verifiable {
+public enum CompressionMethod: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -121,7 +121,7 @@ public enum CompressionMethod: Int8, Enum, Verifiable {
 }
 
 
-public enum ColorCalibration: Int8, Enum, Verifiable {
+public enum ColorCalibration: Int8, Enum, Verifiable, Sendable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
@@ -491,6 +491,10 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     case compressionArtifactsQuality = 174
     case colorCalibration = 176
     case expandPromptToJson = 178
+    case shiftForAudio = 180
+    case usesSolAttention = 182
+    case solAttentionStart = 184
+    case solAttentionTau = 186
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -593,7 +597,11 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
   public var compressionArtifactsQuality: Float32 { let o = _accessor.offset(VTOFFSET.compressionArtifactsQuality.v); return o == 0 ? 43.1 : _accessor.readBuffer(of: Float32.self, at: o) }
   public var colorCalibration: ColorCalibration { let o = _accessor.offset(VTOFFSET.colorCalibration.v); return o == 0 ? .disabled : ColorCalibration(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .disabled }
   public var expandPromptToJson: Bool { let o = _accessor.offset(VTOFFSET.expandPromptToJson.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
-  public static func startGenerationConfiguration(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 88) }
+  public var shiftForAudio: Float32 { let o = _accessor.offset(VTOFFSET.shiftForAudio.v); return o == 0 ? 3.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var usesSolAttention: Bool { let o = _accessor.offset(VTOFFSET.usesSolAttention.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var solAttentionStart: Int32 { let o = _accessor.offset(VTOFFSET.solAttentionStart.v); return o == 0 ? 2 : _accessor.readBuffer(of: Int32.self, at: o) }
+  public var solAttentionTau: Float32 { let o = _accessor.offset(VTOFFSET.solAttentionTau.v); return o == 0 ? 0.5 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public static func startGenerationConfiguration(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 92) }
   public static func add(id: Int64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: id, def: 0, at: VTOFFSET.id.p) }
   public static func add(startWidth: UInt16, _ fbb: inout FlatBufferBuilder) { fbb.add(element: startWidth, def: 0, at: VTOFFSET.startWidth.p) }
   public static func add(startHeight: UInt16, _ fbb: inout FlatBufferBuilder) { fbb.add(element: startHeight, def: 0, at: VTOFFSET.startHeight.p) }
@@ -696,6 +704,11 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
   public static func add(colorCalibration: ColorCalibration, _ fbb: inout FlatBufferBuilder) { fbb.add(element: colorCalibration.rawValue, def: 0, at: VTOFFSET.colorCalibration.p) }
   public static func add(expandPromptToJson: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: expandPromptToJson, def: false,
    at: VTOFFSET.expandPromptToJson.p) }
+  public static func add(shiftForAudio: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: shiftForAudio, def: 3.0, at: VTOFFSET.shiftForAudio.p) }
+  public static func add(usesSolAttention: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: usesSolAttention, def: false,
+   at: VTOFFSET.usesSolAttention.p) }
+  public static func add(solAttentionStart: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: solAttentionStart, def: 2, at: VTOFFSET.solAttentionStart.p) }
+  public static func add(solAttentionTau: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: solAttentionTau, def: 0.5, at: VTOFFSET.solAttentionTau.p) }
   public static func endGenerationConfiguration(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createGenerationConfiguration(
     _ fbb: inout FlatBufferBuilder,
@@ -784,7 +797,11 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     compressionArtifacts: CompressionMethod = .disabled,
     compressionArtifactsQuality: Float32 = 43.1,
     colorCalibration: ColorCalibration = .disabled,
-    expandPromptToJson: Bool = false
+    expandPromptToJson: Bool = false,
+    shiftForAudio: Float32 = 3.0,
+    usesSolAttention: Bool = false,
+    solAttentionStart: Int32 = 2,
+    solAttentionTau: Float32 = 0.5
   ) -> Offset {
     let __start = GenerationConfiguration.startGenerationConfiguration(&fbb)
     GenerationConfiguration.add(id: id, &fbb)
@@ -873,9 +890,13 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     GenerationConfiguration.add(compressionArtifactsQuality: compressionArtifactsQuality, &fbb)
     GenerationConfiguration.add(colorCalibration: colorCalibration, &fbb)
     GenerationConfiguration.add(expandPromptToJson: expandPromptToJson, &fbb)
+    GenerationConfiguration.add(shiftForAudio: shiftForAudio, &fbb)
+    GenerationConfiguration.add(usesSolAttention: usesSolAttention, &fbb)
+    GenerationConfiguration.add(solAttentionStart: solAttentionStart, &fbb)
+    GenerationConfiguration.add(solAttentionTau: solAttentionTau, &fbb)
     return GenerationConfiguration.endGenerationConfiguration(&fbb, start: __start)
   }
-
+  
 
   public mutating func unpack() -> GenerationConfigurationT {
     return GenerationConfigurationT(&self)
@@ -1039,6 +1060,10 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     GenerationConfiguration.add(compressionArtifactsQuality: obj.compressionArtifactsQuality, &builder)
     GenerationConfiguration.add(colorCalibration: obj.colorCalibration, &builder)
     GenerationConfiguration.add(expandPromptToJson: obj.expandPromptToJson, &builder)
+    GenerationConfiguration.add(shiftForAudio: obj.shiftForAudio, &builder)
+    GenerationConfiguration.add(usesSolAttention: obj.usesSolAttention, &builder)
+    GenerationConfiguration.add(solAttentionStart: obj.solAttentionStart, &builder)
+    GenerationConfiguration.add(solAttentionTau: obj.solAttentionTau, &builder)
     return GenerationConfiguration.endGenerationConfiguration(&builder, start: __root)
   }
 
@@ -1130,6 +1155,10 @@ public struct GenerationConfiguration: FlatBufferObject, Verifiable, ObjectAPIPa
     try _v.visit(field: VTOFFSET.compressionArtifactsQuality.p, fieldName: "compressionArtifactsQuality", required: false, type: Float32.self)
     try _v.visit(field: VTOFFSET.colorCalibration.p, fieldName: "colorCalibration", required: false, type: ColorCalibration.self)
     try _v.visit(field: VTOFFSET.expandPromptToJson.p, fieldName: "expandPromptToJson", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.shiftForAudio.p, fieldName: "shiftForAudio", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.usesSolAttention.p, fieldName: "usesSolAttention", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.solAttentionStart.p, fieldName: "solAttentionStart", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.solAttentionTau.p, fieldName: "solAttentionTau", required: false, type: Float32.self)
     _v.finish()
   }
 }
@@ -1222,6 +1251,10 @@ public class GenerationConfigurationT: NativeObject {
   public var compressionArtifactsQuality: Float32
   public var colorCalibration: ColorCalibration
   public var expandPromptToJson: Bool
+  public var shiftForAudio: Float32
+  public var usesSolAttention: Bool
+  public var solAttentionStart: Int32
+  public var solAttentionTau: Float32
 
   public init(_ _t: inout GenerationConfiguration) {
     id = _t.id
@@ -1318,6 +1351,10 @@ public class GenerationConfigurationT: NativeObject {
     compressionArtifactsQuality = _t.compressionArtifactsQuality
     colorCalibration = _t.colorCalibration
     expandPromptToJson = _t.expandPromptToJson
+    shiftForAudio = _t.shiftForAudio
+    usesSolAttention = _t.usesSolAttention
+    solAttentionStart = _t.solAttentionStart
+    solAttentionTau = _t.solAttentionTau
   }
 
   public init() {
@@ -1399,6 +1436,10 @@ public class GenerationConfigurationT: NativeObject {
     compressionArtifactsQuality = 43.1
     colorCalibration = .disabled
     expandPromptToJson = false
+    shiftForAudio = 3.0
+    usesSolAttention = false
+    solAttentionStart = 2
+    solAttentionTau = 0.5
   }
 
   public func serialize() -> ByteBuffer { return serialize(type: GenerationConfiguration.self) }
