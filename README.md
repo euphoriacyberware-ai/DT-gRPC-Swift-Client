@@ -149,6 +149,7 @@ let previewImage = try ImageHelpers.dtTensorToImage(previewData, modelFamily: fa
 | `.flux` | Flux.1, HiDream-I1, SeedVR2 | 16 | — |
 | `.flux2` | Flux 2 (9B, 4B), Ernie Image, Ideogram 4 | 32 | — |
 | `.qwen` | Qwen Image, Qwen Image Edit, Cosmos 2.5, Krea 2 | 16 | — |
+| `.qwen21` | Qwen Image 2.1 | 64 | — |
 | `.zImage` | Z Image | 16 | — |
 | `.wan21` | Wan 2.1 (1.3B, 14B) | 16 | 16 |
 | `.wan22` | Wan 2.2 5B | 48 | 16 |
@@ -161,7 +162,7 @@ let previewImage = try ImageHelpers.dtTensorToImage(previewData, modelFamily: fa
 | `.kandinsky` | Kandinsky 2.1 | 4 (OKLab) | — |
 | `.wurstchen` | Würstchen / Stable Cascade | 4 | — |
 
-**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Krea 2, Ernie Image, Ideogram 4, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively). `.longcatVideoAvatar` uses the Wan 2.1 coefficients but has its own native frame rate. `.minimaxH3` and `.ltx2`/`.ltx23` carry audio latent rows packed below the video latent; these are stripped automatically before preview conversion.
+**Note:** `.sd1` (SD 1.x/2.x/SVD) and `.sdxl` use different 4-channel preview coefficients, so passing the correct family matters for accurate SD 1.x/2.x preview colors. `.hiDreamO1` decodes a patch-packed latent into a preview 32× larger per side. Cosmos 2.5, Krea 2, Ernie Image, Ideogram 4, and SeedVR2 reuse existing family coefficients (Qwen, Flux 2, and Flux respectively). `.longcatVideoAvatar` uses the Wan 2.1 coefficients but has its own native frame rate. `.minimaxH3` and `.ltx2`/`.ltx23` carry audio latent rows packed below the video latent; these are stripped automatically before preview conversion. Qwen Image 2.1 always decodes through a transparent decoder, so its final images arrive as 4-channel ARGB tensors; pass `.qwen21` (or any non-4-channel family) so they are decoded as RGBA pixels rather than as a 4-channel latent.
 
 The `nativeFrameRate` property returns the model's native FPS for video models, or `nil` for image-only models:
 

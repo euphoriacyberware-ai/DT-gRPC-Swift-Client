@@ -42,6 +42,8 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
     case hunyuanVideo
     /// Qwen Image Edit (16-channel latent, same coefficients as Wan 2.1)
     case qwen
+    /// Qwen Image 2.1 (64-channel latent; final images are RGBA from its transparent decoder)
+    case qwen21
     /// Z Image (16-channel latent, uses Flux-like coefficients)
     case zImage
     /// Wan 2.1 models (16-channel latent)
@@ -81,6 +83,8 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
         switch lowercased {
         case "qwenimage", "qwen_image":
             return .qwen
+        case "qwenimage2_1", "qwen_image_2.1":
+            return .qwen21
         case "cosmos2_5_2b", "cosmos2.5_2b":
             // Cosmos 2.5 shares the Wan 2.1 / Qwen 16-channel coefficients upstream.
             return .qwen
@@ -170,6 +174,11 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
             return .zImage
         }
         if lowercased.contains("qwen") {
+            // Qwen Image 2.1 has its own 64-channel latent; don't match 2512 / 2511 / Qwen 2.5 VL.
+            if lowercased.contains("2.1") || lowercased.contains("2_1") || lowercased.contains("2-1")
+                || lowercased.contains("image21") || lowercased.contains("image_21") {
+                return .qwen21
+            }
             return .qwen
         }
         if lowercased.contains("cosmos") {
@@ -231,6 +240,8 @@ public enum LatentModelFamily: String, Sendable, CaseIterable {
             return 32
         case .wan22:
             return 48
+        case .qwen21:
+            return 64
         case .hiDreamO1:
             return 3 * 32 * 32
         case .unknown:
@@ -657,7 +668,15 @@ public struct ImageHelpers {
             return try hiDreamO1PatchToImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
         }
 
-        guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 else {
+        // Models with a transparent (RGBA) decoder, such as Qwen Image 2.1, return final images as
+        // 4-channel ARGB tensors. For a family whose latent isn't 4-channel, a 4-channel tensor
+        // can only be decoded pixels, so it must not go through the 4-channel latent conversion.
+        if channels == 4 && family != .unknown && family.latentChannels != 4 {
+            DTLogger.debug("dtTensorToImage: using 4-channel ARGB conversion (family=\(family))", category: .images)
+            return try argbTensorToImage(tensorData, width: width, height: height, isNHWC: isNHWC)
+        }
+
+        guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 || channels == 64 else {
             DTLogger.error("dtTensorToImage: unsupported channel count \(channels)", category: .images)
             throw ImageError.conversionFailed
         }
@@ -681,7 +700,11 @@ public struct ImageHelpers {
             rgbData.withUnsafeMutableBytes { (outPtr: UnsafeMutableRawBufferPointer) in
                 let uint8Ptr = outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
 
-                if channels == 48 {
+                if channels == 64 {
+                    // 64-channel latent space to RGB (Qwen Image 2.1 coefficients)
+                    DTLogger.debug("dtTensorToImage: using 64-channel Qwen Image 2.1 conversion", category: .images)
+                    convertQwen21ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
+                } else if channels == 48 {
                     // 48-channel latent space to RGB (Wan 2.2 5B coefficients)
                     DTLogger.debug("dtTensorToImage: using 48-channel Wan 2.2 conversion", category: .images)
                     convert48ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
@@ -1240,6 +1263,62 @@ public struct ImageHelpers {
         }
     }
 
+    // Qwen Image 2.1 latent-to-RGB coefficients (ComfyUI comfy/latent_formats.py: QwenImage21,
+    // mirrored from upstream ImageConverter), applied to normalized latents.
+    private static let qwen21RCoefficients: [Float] = [
+        -0.0158, 0.0030, 0.0637, 0.0360, 0.0159, 0.0132, 0.0191, -0.0146,
+        0.0187, -0.1059, -0.0195, -0.0295, 0.0191, -0.0144, 0.0389, -0.0153,
+        0.0339, -0.0136, -0.0340, -0.0133, 0.0109, -0.0010, 0.0301, -0.0281,
+        -0.0725, -0.0036, 0.0087, -0.0260, -0.0039, -0.0026, 0.0088, -0.0087,
+        -0.0027, -0.0064, 0.0594, 0.0103, -0.0091, 0.0178, -0.0063, 0.0452,
+        0.0149, 0.1484, -0.0120, 0.0181, 0.0132, 0.0291, 0.0066, -0.1153,
+        0.0258, 0.0375, -0.0142, 0.0339, 0.0346, 0.0369, -0.0052, -0.0279,
+        0.0036, -0.0441, -0.0001, -0.0222, 0.0039, -0.0094, -0.0066, 0.0220
+    ]
+    private static let qwen21GCoefficients: [Float] = [
+        -0.0115, 0.0120, 0.0470, 0.0661, 0.0181, 0.0326, 0.0261, -0.0276,
+        -0.0024, -0.0090, -0.0226, 0.0024, -0.0393, -0.0166, 0.0430, -0.0336,
+        0.0122, -0.0078, -0.0282, -0.0176, -0.0087, 0.0044, 0.0053, -0.0205,
+        0.0002, 0.0158, 0.0040, 0.0183, -0.0035, 0.0172, 0.0078, -0.0310,
+        0.0018, 0.0292, 0.1049, -0.0103, 0.0025, 0.0243, -0.0012, 0.0246,
+        0.0270, 0.0801, 0.0040, 0.0051, 0.0050, 0.0020, -0.0410, -0.0629,
+        0.0378, 0.1139, -0.0126, 0.0153, 0.0211, -0.0431, -0.0092, 0.0410,
+        0.0017, -0.0367, -0.0092, -0.0183, 0.0053, -0.0075, -0.0088, 0.0074
+    ]
+    private static let qwen21BCoefficients: [Float] = [
+        -0.0174, 0.0027, -0.0127, -0.0030, 0.0082, 0.0169, 0.0136, -0.0361,
+        -0.0072, 0.0350, -0.0138, -0.0215, -0.0001, -0.0272, 0.0445, 0.0031,
+        0.0220, -0.0120, -0.0245, -0.0133, 0.0096, 0.0016, 0.0361, -0.0032,
+        0.0160, 0.0807, -0.0053, -0.0077, -0.0107, 0.0237, 0.0078, -0.0122,
+        0.0094, -0.0256, 0.1180, -0.0026, -0.0015, 0.0292, 0.0202, 0.0143,
+        0.0052, 0.0804, 0.0010, -0.0021, 0.0019, 0.0092, -0.1314, -0.0802,
+        0.0298, 0.0468, -0.0276, 0.0138, 0.0267, -0.0993, 0.0056, -0.0357,
+        -0.0083, -0.0454, -0.0001, -0.0051, -0.0184, -0.0143, -0.0063, 0.0100
+    ]
+
+    /// Convert 64-channel Qwen Image 2.1 latent to RGB
+    private static func convertQwen21ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+        for i in 0..<pixelCount {
+            let base = i * 64
+            var rVal: Float = -0.1228
+            var gVal: Float = -0.1869
+            var bVal: Float = -0.3083
+            for c in 0..<64 {
+                let v = f16ToFloat(float16Ptr, base + c)
+                rVal += qwen21RCoefficients[c] * v
+                gVal += qwen21GCoefficients[c] * v
+                bVal += qwen21BCoefficients[c] * v
+            }
+            let r = rVal * 127.5 + 127.5
+            let g = gVal * 127.5 + 127.5
+            let b = bVal * 127.5 + 127.5
+
+            uint8Ptr[i * 3 + 0] = UInt8(clamping: Int(r.isFinite ? r : 0))
+            uint8Ptr[i * 3 + 1] = UInt8(clamping: Int(g.isFinite ? g : 0))
+            uint8Ptr[i * 3 + 2] = UInt8(clamping: Int(b.isFinite ? b : 0))
+        }
+    }
+
     /// Convert 32-channel Flux 2 latent to RGB
     private static func convertFlux2ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
@@ -1542,6 +1621,62 @@ public struct ImageHelpers {
               ) else {
             throw ImageError.conversionFailed
         }
+        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
+        #endif
+    }
+
+    /// Convert a 4-channel ARGB pixel tensor (as produced by Draw Things' transparent decoders) to an RGBA image.
+    ///
+    /// Channel 0 is alpha in [0, 1]; channels 1...3 are RGB in [-1, 1]. Mirrors upstream
+    /// `ImageConverter.imageAndMask(from:)` / the transparent `FirstStage` decode.
+    private static func argbTensorToImage(_ tensorData: Data, width: Int, height: Int, isNHWC: Bool) throws -> PlatformImage {
+        let pixelDataOffset = 68
+        let pixelCount = width * height
+        guard pixelCount > 0, tensorData.count >= pixelDataOffset + pixelCount * 4 * 2 else {
+            throw ImageError.invalidData
+        }
+
+        var rgbaData = Data(count: pixelCount * 4)
+        tensorData.withUnsafeBytes { (rawPtr: UnsafeRawBufferPointer) in
+            let float16Ptr = rawPtr.baseAddress!.advanced(by: pixelDataOffset).assumingMemoryBound(to: UInt16.self)
+            rgbaData.withUnsafeMutableBytes { (outPtr: UnsafeMutableRawBufferPointer) in
+                let uint8Ptr = outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
+                // NHWC: [A, R, G, B] per pixel; NCHW: planar [A...A, R...R, G...G, B...B]
+                let (pixelStride, channelStride) = isNHWC ? (4, 1) : (1, pixelCount)
+                for i in 0..<pixelCount {
+                    let base = i * pixelStride
+                    let a = f16ToFloat(float16Ptr, base)
+                    let r = f16ToFloat(float16Ptr, base + channelStride)
+                    let g = f16ToFloat(float16Ptr, base + 2 * channelStride)
+                    let b = f16ToFloat(float16Ptr, base + 3 * channelStride)
+                    uint8Ptr[i * 4 + 0] = UInt8(clamping: Int(r.isFinite ? (r + 1.0) * 127.5 : 127.5))
+                    uint8Ptr[i * 4 + 1] = UInt8(clamping: Int(g.isFinite ? (g + 1.0) * 127.5 : 127.5))
+                    uint8Ptr[i * 4 + 2] = UInt8(clamping: Int(b.isFinite ? (b + 1.0) * 127.5 : 127.5))
+                    uint8Ptr[i * 4 + 3] = UInt8(clamping: Int((a.isFinite ? a : 1.0) * 255.0 + 0.5))
+                }
+            }
+        }
+
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let provider = CGDataProvider(data: rgbaData as CFData),
+              let cgImage = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: width * 4,
+                space: colorSpace,
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: true,
+                intent: .defaultIntent
+              ) else {
+            throw ImageError.conversionFailed
+        }
+        #if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+        #else
         return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
         #endif
     }
