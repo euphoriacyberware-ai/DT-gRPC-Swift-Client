@@ -68,7 +68,8 @@ public class DrawThingsClient: ObservableObject {
             override: override,
             sharedSecret: sharedSecret
         )
-        return try resultData.map { try ImageHelpers.dtTensorToImage($0) }
+        let modelFamily = LatentModelFamily.detect(from: configuration.model)
+        return try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
     }
 
     public func generateImageAndAudio(
@@ -99,7 +100,8 @@ public class DrawThingsClient: ObservableObject {
             }
         )
 
-        let images = try resultData.map { try ImageHelpers.dtTensorToImage($0) }
+        let modelFamily = LatentModelFamily.detect(from: configuration.model)
+        let images = try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
         return GenerationOutput(images: images, audio: audioBuffers)
     }
 

@@ -181,6 +181,13 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertEqual(LatentModelFamily.detect(from: "longcatVideoAvatar1_5"), .longcatVideoAvatar)
         XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_v1.5"), .longcatVideoAvatar)
         XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt"), .longcatVideoAvatar)
+
+        // Qwen Image 2.1 has its own 64-channel family; other Qwen Image releases stay on .qwen.
+        XCTAssertEqual(LatentModelFamily.detect(from: "qwenImage2_1"), .qwen21)
+        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2.1"), .qwen21)
+        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2.1_q8p.ckpt"), .qwen21)
+        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2512_q8p.ckpt"), .qwen)
+        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_edit_2511_q8p.ckpt"), .qwen)
     }
 
     func testLatentModelFamilyChannels() {
@@ -192,6 +199,55 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertEqual(LatentModelFamily.hiDreamO1.latentChannels, 3 * 32 * 32)
         XCTAssertEqual(LatentModelFamily.minimaxH3.latentChannels, 24)
         XCTAssertEqual(LatentModelFamily.longcatVideoAvatar.latentChannels, 16)
+        XCTAssertEqual(LatentModelFamily.qwen21.latentChannels, 64)
+    }
+
+    /// Build an uncompressed NHWC float16 DTTensor with the given per-pixel channel values.
+    private func makeDTTensor(width: Int, height: Int, pixel: [Float]) -> Data {
+        var header = [UInt32](repeating: 0, count: 17)
+        header[2] = 0x02  // NHWC
+        header[5] = 1
+        header[6] = UInt32(height)
+        header[7] = UInt32(width)
+        header[8] = UInt32(pixel.count)
+        var data = header.withUnsafeBytes { Data($0) }
+        for _ in 0..<(width * height) {
+            for value in pixel {
+                var bits = Float16(value).bitPattern
+                data.append(Data(bytes: &bits, count: 2))
+            }
+        }
+        return data
+    }
+
+    private func firstPixelRGBA(_ image: PlatformImage) throws -> [UInt8] {
+#if os(macOS)
+        let cgImage = try XCTUnwrap(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
+#else
+        let cgImage = try XCTUnwrap(image.cgImage)
+#endif
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        return pixel
+    }
+
+    /// Qwen Image 2.1 final images are 4-channel ARGB (alpha in [0, 1], RGB in [-1, 1]);
+    /// they must not be run through the 4-channel SDXL latent matrix (which inverts colours).
+    func testQwen21FinalImageDecodesAsARGB() throws {
+        // Opaque pure red: A = 1, R = 1, G = -1, B = -1.
+        let tensor = makeDTTensor(width: 2, height: 2, pixel: [1, 1, -1, -1])
+        let image = try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21)
+        XCTAssertEqual(try firstPixelRGBA(image), [255, 0, 0, 255])
+    }
+
+    func testQwen21PreviewLatentIsSupported() throws {
+        let tensor = makeDTTensor(width: 2, height: 2, pixel: [Float](repeating: 0, count: 64))
+        XCTAssertNoThrow(try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21))
     }
 
     func testLatentModelFamilyNativeFrameRate() {
