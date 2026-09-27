@@ -263,7 +263,12 @@ typedef enum {
   fpzipErrorInternal       = 7  /* exception thrown */
 } fpzipError;
 
-extern_ fpzipError fpzip_errno; /* error code */
+/* DrawThingsClient: the error code is per thread, so concurrent calls don't race on it. */
+#ifdef __cplusplus
+extern_ thread_local fpzipError fpzip_errno; /* error code */
+#else
+extern_ _Thread_local fpzipError fpzip_errno; /* error code */
+#endif
 extern_ const char* const fpzip_errstr[]; /* error message indexed by fpzip_errno */
 
 #ifdef __cplusplus

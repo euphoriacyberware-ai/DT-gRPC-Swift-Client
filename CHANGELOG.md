@@ -56,6 +56,8 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - Image encoding and decoding use Accelerate (2048×2048 encode 25 → 9 ms, decode 15 → 2 ms).
 
 ### Fixed
+- fpzip's error code was a global written by every decode, a data race when tensors were decoded
+  concurrently (found with the Thread Sanitizer). It is now per thread.
 - VideoKit: ML frame interpolation gave every interpolated frame a timestamp of 0.
 - A generation that failed on the server was returned as a success, with the last preview (a
   small latent-sized image) as its result. It now throws `DrawThingsError.incompleteResponse`.
