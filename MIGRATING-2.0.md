@@ -243,6 +243,30 @@ DrawThingsQueue; the separate repository stays at 0.3.1 for 1.x apps. Add
 New: `lastOutputURL`, and automatic assemblies are queued instead of skipped while another is
 running.
 
+## DrawThingsKit 2.x
+
+Kit is now the `DrawThingsKit` product of this package; the separate repository stays at 2.2.1 for
+1.x apps. Add `.product(name: "DrawThingsKit", package: "DrawThings-Swift")` and remove the old
+package. `import DrawThingsKit` still imports the client; it no longer imports the queue (add
+`DrawThingsQueue` if you use it).
+
+| DrawThingsKit 2.2 | 2.0 |
+|---|---|
+| `ConnectionManager`, `ModelsManager`, `ConfigurationManager` (`ObservableObject`) | the same classes, `@Observable`: use `@State` instead of `@StateObject` and `@Environment(Type.self)` instead of `@EnvironmentObject` |
+| `JobQueue`, `GenerationJob`, `JobProgress`, `JobStatus`, Kit's `JobEvent` | `GenerationQueue` and `QueueJob` (DrawThingsQueue) |
+| `ConfigurationCodable`, `ConfigurationJSON`, `ConfigurationCodableError` | the client's `DrawThingsConfiguration` JSON API (same method names) |
+| `ConfigurationManager.copyToClipboard()` / `pasteFromClipboard()` | `exportToJSON()` / `loadFromJSON(_:)` with the pasteboard in your app |
+| | `ConfigurationManager.makeRequest(image:mask:hints:)` |
+| `ModelsManager.latentModelFamily(forFile:)` | `modelFamily(forFile:)` |
+| `CheckpointModel.framesPerSecond`, `.audioSampleRate` (own tables) | same properties, from the client's tables (Wan 2.2 5B 24 fps, SVD 30, Hunyuan 30) |
+| `ModelSource.iconColor` | removed; choose colors in your views (`iconName` stays) |
+| `ServerProfile` | also `connectionOptions`; IPv6 addresses parse |
+| the 15 connection and queue views | removed; the library has no views (see the example app) |
+
+Behavior changes: the profile's shared secret is now sent when connecting;
+`serverRequiresSharedSecret` is set when the server rejects the connection for a missing or wrong
+secret; disconnecting closes the connection.
+
 ## Removed
 
 - `DrawThingsClient` class, `GenerationOutput`, `ImageGenerationProgress`

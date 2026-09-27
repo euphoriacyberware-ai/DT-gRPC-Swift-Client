@@ -23,6 +23,9 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
   SwiftUI views): an `@Observable` `VideoProcessor` fed by any sequence of `GenerationResult`s,
   using `result.media` for video detection and frame rate and `result.audio` for the soundtrack.
   Automatic assemblies are queued, so a result that arrives during an assembly also gets a video.
+- `DrawThingsKit` product (formerly the separate DrawThingsKit package, without its SwiftUI views,
+  job queue and JSON codec): `@Observable` `ConnectionManager`, `ModelsManager` and
+  `ConfigurationManager`, `ConfigurationManager.makeRequest()`, and IPv6 server profiles.
 - `ConnectionOptions`: TLS verification policy, shared secret, client identity, message size,
   request timeout and model spec source. `ServerEndpoint` parses IPv6 addresses.
 - `MediaProfile` and `GeneratedAudio` (planar PCM, `AVAudioPCMBuffer` and in-memory WAV).
@@ -56,6 +59,8 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - Image encoding and decoding use Accelerate (2048×2048 encode 25 → 9 ms, decode 15 → 2 ms).
 
 ### Fixed
+- DrawThingsKit: the profile's shared secret was never sent; disconnecting or switching servers left
+  the old connection open; one unreadable model in the server's list discarded the whole list.
 - Video frame rates now follow Draw Things: a model's spec can set its own rate (some Wan 2.1 14B
   and Hunyuan models differ from their family), Hunyuan Video is 30 fps, Wan 2.2 5B is 24 fps, and
   Stable Video Diffusion counts as a 30 fps video model.
