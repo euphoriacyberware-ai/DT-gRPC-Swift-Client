@@ -25,6 +25,8 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+      - name: Build the example app
+        run: swift build --package-path Examples/DrawThingsExample
 
   ios:
     name: iOS simulator build
@@ -40,3 +42,10 @@ jobs:
             -scheme DrawThingsSwift-Package \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath .build/xcode
+      - name: Build the example app for iOS Simulator
+        working-directory: Examples/DrawThingsExample
+        run: |
+          xcodebuild build \
+            -scheme DrawThingsExample \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ../../.build/xcode-example
