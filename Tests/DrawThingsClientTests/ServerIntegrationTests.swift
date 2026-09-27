@@ -4,7 +4,6 @@ import GRPCCore
 import Synchronization
 import Testing
 @testable import DrawThingsClient
-import DrawThingsClientUI
 
 /// End-to-end tests of the client against an in-process gRPC server.
 @Suite("Server integration")

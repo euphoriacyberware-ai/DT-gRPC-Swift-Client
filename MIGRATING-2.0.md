@@ -15,21 +15,24 @@ are mechanical; this guide maps the 1.x API to 2.0.
 
 Stay on `.upToNextMajor(from: "1.7.2")` until you can meet the new platform floor.
 
-## Products
+## Package
 
-The SwiftUI wrapper moved to its own product so the core module no longer imports SwiftUI or
-Combine:
+The repository is renamed **DrawThings-Swift** (GitHub redirects the old URL). The module is still
+`DrawThingsClient`, but the `package:` label follows the new URL:
 
 ```swift
-.product(name: "DrawThingsClient", package: "DT-gRPC-Swift-Client"),
-.product(name: "DrawThingsClientUI", package: "DT-gRPC-Swift-Client"),  // for DrawThingsSession
+.package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.0.0"),
+// in the target:
+.product(name: "DrawThingsClient", package: "DrawThings-Swift"),
 ```
+
+The library no longer imports SwiftUI or Combine; its observable types use Observation.
 
 ## SwiftUI: `DrawThingsClient` → `DrawThingsSession`
 
 | 1.x | 2.0 |
 |---|---|
-| `DrawThingsClient` (`ObservableObject`) | `DrawThingsSession` (`@Observable`, `import DrawThingsClientUI`) |
+| `DrawThingsClient` (`ObservableObject`) | `DrawThingsSession` (`@Observable`) |
 | `@StateObject var client` | `@State var session` |
 | `init(address:useTLS:)` | `init(address:options:)` |
 | `connect(sharedSecret:)` | `connect()`; the secret is in `ConnectionOptions` |

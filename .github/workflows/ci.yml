@@ -37,6 +37,6 @@ jobs:
       - name: Build for iOS Simulator
         run: |
           xcodebuild build \
-            -scheme DrawThingsClient-Package \
+            -scheme DrawThingsSwift \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath .build/xcode

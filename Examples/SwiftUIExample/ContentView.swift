@@ -1,6 +1,5 @@
 import SwiftUI
 import DrawThingsClient
-import DrawThingsClientUI
 
 struct ContentView: View {
     @State private var session: DrawThingsSession?

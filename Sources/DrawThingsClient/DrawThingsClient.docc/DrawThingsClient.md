@@ -19,8 +19,8 @@ for try await event in service.stream(request) {
 }
 ```
 
-For SwiftUI, the `DrawThingsClientUI` product wraps the service in an observable
-`DrawThingsSession`.
+For SwiftUI, ``DrawThingsSession`` mirrors the service's events into observable properties. The
+library itself contains no views; see <doc:BuildingAUserInterface>.
 
 ## Topics
 
@@ -31,6 +31,11 @@ For SwiftUI, the `DrawThingsClientUI` product wraps the service in an observable
 - ``GenerationRequest``
 - ``GenerationEvent``
 - ``GenerationResult``
+
+### SwiftUI
+
+- <doc:BuildingAUserInterface>
+- ``DrawThingsSession``
 
 ### Connecting
 

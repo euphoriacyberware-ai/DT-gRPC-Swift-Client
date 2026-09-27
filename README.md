@@ -13,7 +13,7 @@ DrawThingsClient speaks the Draw Things gRPC protocol directly. It handles the t
 ## Features
 
 - **Swift 6 concurrency**: `Sendable` value types, an actor-based service and an `AsyncThrowingStream` of generation events delivered in server order.
-- **SwiftUI**: an `@Observable` `DrawThingsSession` (in the `DrawThingsClientUI` product) whose progress and preview update your views.
+- **SwiftUI-ready, no views**: an `@Observable` `DrawThingsSession` whose progress and preview update your views. The library itself contains no SwiftUI.
 - **Cancellation**: cancelling the task (or leaving the event loop) cancels the generation on the server.
 - **Video and audio**: frames, generated audio (`GeneratedAudio`, with WAV export) and each model's frame rate and audio sample rate.
 - **Draw Things JSON**: read and write the app's configuration JSON, including its "Copy Configuration" output.
@@ -41,21 +41,19 @@ DrawThingsClient speaks the Draw Things gRPC protocol directly. It handles the t
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/euphoriacyberware-ai/DT-gRPC-Swift-Client", from: "2.0.0")
+    .package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.0.0")
 ]
 ```
 
-Then add the products you need to your target:
+Then add the product to your target:
 
 ```swift
-.product(name: "DrawThingsClient", package: "DT-gRPC-Swift-Client"),    // core
-.product(name: "DrawThingsClientUI", package: "DT-gRPC-Swift-Client"),  // SwiftUI session (optional)
+.product(name: "DrawThingsClient", package: "DrawThings-Swift"),
 ```
 
 | Product | Contents |
 |---|---|
-| `DrawThingsClient` | `DrawThingsService`, configuration and JSON, tensors and image helpers, media types, logging. No SwiftUI or Combine. |
-| `DrawThingsClientUI` | `DrawThingsSession`, an `@Observable` wrapper for SwiftUI. |
+| `DrawThingsClient` | `DrawThingsService`, `DrawThingsSession`, configuration and JSON, tensors and image helpers, media types, logging. No SwiftUI or Combine. |
 
 **DrawThings family:** this is the base library that [DrawThingsQueue](https://github.com/euphoriacyberware-ai/DrawThingsQueue), [DrawThingsKit](https://github.com/euphoriacyberware-ai/DrawThingsKit) and [DrawThingsVideoKit](https://github.com/euphoriacyberware-ai/DrawThingsVideoKit) build on.
 
@@ -68,7 +66,6 @@ Then add the products you need to your target:
 ```swift
 import SwiftUI
 import DrawThingsClient
-import DrawThingsClientUI
 
 struct ContentView: View {
     @State private var session = try! DrawThingsSession(address: "localhost:7859")

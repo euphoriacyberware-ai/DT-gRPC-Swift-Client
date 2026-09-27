@@ -1,6 +1,6 @@
 //
 //  DrawThingsSession.swift
-//  DrawThingsClientUI
+//  DrawThingsClient
 //
 //  Created by euphoriacyberware-ai.
 //  Copyright © 2025 euphoriacyberware-ai
@@ -10,7 +10,6 @@
 //
 
 import CoreGraphics
-import DrawThingsClient
 import Foundation
 import Observation
 

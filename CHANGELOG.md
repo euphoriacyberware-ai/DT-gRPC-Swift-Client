@@ -3,7 +3,7 @@
 All notable changes to DrawThingsClient are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
-## 2.0.0 — 2026-09-27
+## 2.0.0 — Unreleased
 
 A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API mapping.
 
@@ -15,7 +15,7 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
   remote download, image, audio, completed) in server order, and `generate(_:)` returning a
   `GenerationResult`. Cancelling cancels the generation on the server.
 - `GenerationRequest`, `GenerationProgress` and `GenerationResult` value types.
-- `DrawThingsClientUI` product with an `@Observable` `DrawThingsSession`.
+- `DrawThingsSession`, an `@Observable` session for SwiftUI (the library contains no views).
 - `ConnectionOptions`: TLS verification policy, shared secret, client identity, message size,
   request timeout and model spec source. `ServerEndpoint` parses IPv6 addresses.
 - `MediaProfile` and `GeneratedAudio` (planar PCM, `AVAudioPCMBuffer` and in-memory WAV).
@@ -35,6 +35,8 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - An in-process gRPC test server; 108 tests on Swift Testing.
 
 ### Changed
+- The repository is renamed DrawThings-Swift and the package `DrawThingsSwift`; the module is
+  still `DrawThingsClient`.
 - No network request by default: the models.drawthings.ai fetch is opt-in
   (`.bundledAndRemote()`), and the bundled snapshot is refreshed before releases (now 246 specs).
 - TLS verifies public servers; local-network servers (including names that resolve to LAN

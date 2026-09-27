@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "DrawThingsClient",
+    name: "DrawThingsSwift",
     platforms: [
         .macOS(.v15),
         .iOS(.v18)
@@ -11,10 +11,6 @@ let package = Package(
         .library(
             name: "DrawThingsClient",
             targets: ["DrawThingsClient"]
-        ),
-        .library(
-            name: "DrawThingsClientUI",
-            targets: ["DrawThingsClientUI"]
         ),
     ],
     dependencies: [
@@ -62,15 +58,10 @@ let package = Package(
                 .copy("Resources/models.json"),
             ]
         ),
-        .target(
-            name: "DrawThingsClientUI",
-            dependencies: ["DrawThingsClient"]
-        ),
         .testTarget(
             name: "DrawThingsClientTests",
             dependencies: [
                 "DrawThingsClient",
-                "DrawThingsClientUI",
                 "CFpzip",
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),

@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 @testable import DrawThingsClient
-import DrawThingsClientUI
 
 @Suite("DrawThingsSession")
 @MainActor
