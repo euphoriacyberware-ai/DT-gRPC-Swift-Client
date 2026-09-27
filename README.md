@@ -96,7 +96,7 @@ Or add it to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/euphoriacyberware-ai/DT-gRPC-Swift-Client", branch: "main")
+    .package(url: "https://github.com/euphoriacyberware-ai/DT-gRPC-Swift-Client", from: "1.7.2")
 ]
 ```
 
