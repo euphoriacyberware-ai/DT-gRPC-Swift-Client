@@ -1,5 +1,1131 @@
 [
   {
+    "name": "Qwen Image 2.1",
+    "version": "qwen_image_2.1",
+    "autoencoder": "qwen_image_2.1_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 24,
+    "hires_fix_scale": 40,
+    "file": "qwen_image_2.1_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "noise_discretization": {
+      "rf": {
+        "_0": {
+          "sigma_min": 0,
+          "sigma_max": 1,
+          "condition_scale": 1000,
+          "shift_terminal": 0.02
+        }
+      }
+    },
+    "note": "[Qwen Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1) supports text-to-image generation, reference-image editing, and native transparency. Provide reference images through the canvas and moodboard, or omit images for text-to-image. For transparent output, explicitly request an RGBA image with an alpha channel and a transparent background. Start with 40 DDIM Trailing steps, Text Guidance 1, and Shift 1 with resolution-dependent shift enabled. Released under the [Qwen Research License Agreement](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE), for non-commercial research and evaluation; commercial use requires a separate license.",
+    "hugging_face_link": "Qwen/Qwen-Image-2.1"
+  },
+  {
+    "name": "Qwen Image 2.1 (6-bit)",
+    "version": "qwen_image_2.1",
+    "autoencoder": "qwen_image_2.1_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 24,
+    "hires_fix_scale": 40,
+    "file": "qwen_image_2.1_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "noise_discretization": {
+      "rf": {
+        "_0": {
+          "sigma_min": 0,
+          "sigma_max": 1,
+          "condition_scale": 1000,
+          "shift_terminal": 0.02
+        }
+      }
+    },
+    "note": "[Qwen Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1) supports text-to-image generation, reference-image editing, and native transparency. Provide reference images through the canvas and moodboard, or omit images for text-to-image. For transparent output, explicitly request an RGBA image with an alpha channel and a transparent background. Start with 40 DDIM Trailing steps, Text Guidance 1, and Shift 1 with resolution-dependent shift enabled. Released under the [Qwen Research License Agreement](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE), for non-commercial research and evaluation; commercial use requires a separate license.",
+    "hugging_face_link": "Qwen/Qwen-Image-2.1"
+  },
+  {
+    "name": "Qwen Image 2.1 (8-bit S)",
+    "version": "qwen_image_2.1",
+    "autoencoder": "qwen_image_2.1_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 24,
+    "hires_fix_scale": 40,
+    "file": "qwen_image_2.1_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "noise_discretization": {
+      "rf": {
+        "_0": {
+          "sigma_min": 0,
+          "sigma_max": 1,
+          "condition_scale": 1000,
+          "shift_terminal": 0.02
+        }
+      }
+    },
+    "note": "[Qwen Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1) supports text-to-image generation, reference-image editing, and native transparency. Provide reference images through the canvas and moodboard, or omit images for text-to-image. For transparent output, explicitly request an RGBA image with an alpha channel and a transparent background. Start with 40 DDIM Trailing steps, Text Guidance 1, and Shift 1 with resolution-dependent shift enabled. Released under the [Qwen Research License Agreement](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE), for non-commercial research and evaluation; commercial use requires a separate license.",
+    "hugging_face_link": "Qwen/Qwen-Image-2.1"
+  },
+  {
+    "name": "Qwen Image 2.1 (4-bit S)",
+    "version": "qwen_image_2.1",
+    "autoencoder": "qwen_image_2.1_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 24,
+    "hires_fix_scale": 40,
+    "file": "qwen_image_2.1_i4x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "noise_discretization": {
+      "rf": {
+        "_0": {
+          "sigma_min": 0,
+          "sigma_max": 1,
+          "condition_scale": 1000,
+          "shift_terminal": 0.02
+        }
+      }
+    },
+    "note": "[Qwen Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1) supports text-to-image generation, reference-image editing, and native transparency. Provide reference images through the canvas and moodboard, or omit images for text-to-image. For transparent output, explicitly request an RGBA image with an alpha channel and a transparent background. Start with 40 DDIM Trailing steps, Text Guidance 1, and Shift 1 with resolution-dependent shift enabled. Released under the [Qwen Research License Agreement](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE), for non-commercial research and evaluation; commercial use requires a separate license.",
+    "hugging_face_link": "Qwen/Qwen-Image-2.1"
+  },
+  {
+    "name": "MiniMax H3",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "fl2va",
+    "default_scale": 12,
+    "file": "minimax_h3_fl2va_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) supports text-to-video and first/last-frame-conditioned generation. Use the canvas image for the first frame and the first enabled moodboard image for the last frame, or omit images for text-to-video. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 (6-bit)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "fl2va",
+    "default_scale": 12,
+    "file": "minimax_h3_fl2va_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) supports text-to-video and first/last-frame-conditioned generation. Use the canvas image for the first frame and the first enabled moodboard image for the last frame, or omit images for text-to-video. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 (8-bit S)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "fl2va",
+    "default_scale": 12,
+    "file": "minimax_h3_fl2va_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) supports text-to-video and first/last-frame-conditioned generation. Use the canvas image for the first frame and the first enabled moodboard image for the last frame, or omit images for text-to-video. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 (4-bit S)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "fl2va",
+    "default_scale": 12,
+    "file": "minimax_h3_fl2va_i4x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) supports text-to-video and first/last-frame-conditioned generation. Use the canvas image for the first frame and the first enabled moodboard image for the last frame, or omit images for text-to-video. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 [ref2va]",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "ref2va",
+    "default_scale": 12,
+    "file": "minimax_h3_ref2va_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3 [ref2va]](https://huggingface.co/MiniMaxAI/MiniMax-H3) generates video guided by reference subjects, objects, or scenes. Provide reference images through the canvas and moodboard, and identify them in the prompt as <Picture 1>, <Picture 2>, etc. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 [ref2va] (6-bit)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "ref2va",
+    "default_scale": 12,
+    "file": "minimax_h3_ref2va_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3 [ref2va]](https://huggingface.co/MiniMaxAI/MiniMax-H3) generates video guided by reference subjects, objects, or scenes. Provide reference images through the canvas and moodboard, and identify them in the prompt as <Picture 1>, <Picture 2>, etc. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 [ref2va] (8-bit S)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "ref2va",
+    "default_scale": 12,
+    "file": "minimax_h3_ref2va_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3 [ref2va]](https://huggingface.co/MiniMaxAI/MiniMax-H3) generates video guided by reference subjects, objects, or scenes. Provide reference images through the canvas and moodboard, and identify them in the prompt as <Picture 1>, <Picture 2>, etc. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "MiniMax H3 [ref2va] (4-bit S)",
+    "version": "minimax_h3",
+    "autoencoder": "minimax_h3_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "ref2va",
+    "default_scale": 12,
+    "file": "minimax_h3_ref2va_i4x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_32b_50_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "frames_per_second": 24,
+    "note": "[MiniMax H3 [ref2va]](https://huggingface.co/MiniMaxAI/MiniMax-H3) generates video guided by reference subjects, objects, or scenes. Provide reference images through the canvas and moodboard, and identify them in the prompt as <Picture 1>, <Picture 2>, etc. The CFG-distilled base model generates 24 FPS video with synchronized 32 kHz stereo audio. Start with a 768-pixel short side, 50 DDIM Trailing steps, Text Guidance 1, Shift 12, and Audio Shift 3. Released under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE).",
+    "copyright": "© 2026 MiniMax. All Rights Reserved.",
+    "hugging_face_link": "MiniMaxAI/MiniMax-H3"
+  },
+  {
+    "name": "Krea 2 Turbo",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_turbo_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_turbo_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Turbo](https://huggingface.co/krea/Krea-2-Turbo) is the post-trained and distilled release of Krea's 12-billion-parameter text-to-image Diffusion Transformer, designed for fast natural-language image generation. Use 8 sampling steps with CFG 1. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Turbo"
+  },
+  {
+    "name": "Krea 2 Turbo (6-bit)",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_turbo_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_turbo_q6p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Turbo](https://huggingface.co/krea/Krea-2-Turbo) is the post-trained and distilled release of Krea's 12-billion-parameter text-to-image Diffusion Transformer, designed for fast natural-language image generation. Use 8 sampling steps with CFG 1. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Turbo"
+  },
+  {
+    "name": "Krea 2 Turbo (8-bit S)",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_turbo_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_turbo_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Turbo](https://huggingface.co/krea/Krea-2-Turbo) is the post-trained and distilled release of Krea's 12-billion-parameter text-to-image Diffusion Transformer, designed for fast natural-language image generation. Use 8 sampling steps with CFG 1. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Turbo"
+  },
+  {
+    "name": "Krea 2 Turbo (6-bit S)",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_turbo_i6x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_turbo_i6x.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Turbo](https://huggingface.co/krea/Krea-2-Turbo) is the post-trained and distilled release of Krea's 12-billion-parameter text-to-image Diffusion Transformer, designed for fast natural-language image generation. Use 8 sampling steps with CFG 1. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Turbo"
+  },
+  {
+    "name": "Ideogram 4",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4](https://huggingface.co/ideogram-ai/ideogram-4-fp8) is a 9.3-billion-parameter open-weight text-to-image foundation model trained from scratch. It excels at multilingual text rendering and design-oriented generation, and supports structured JSON prompts with explicit layout, bounding-box, and color-palette controls. It generates natively at 2K resolution and is released under the Ideogram 4 Non-Commercial license; 48 sampling steps are recommended for highest quality.",
+    "copyright": "© 2026 Ideogram",
+    "hugging_face_link": "ideogram-ai/ideogram-4-fp8"
+  },
+  {
+    "name": "Ideogram 4 (6-bit)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4](https://huggingface.co/ideogram-ai/ideogram-4-fp8) is a 9.3-billion-parameter open-weight text-to-image foundation model trained from scratch. It excels at multilingual text rendering and design-oriented generation, and supports structured JSON prompts with explicit layout, bounding-box, and color-palette controls. It generates natively at 2K resolution and is released under the Ideogram 4 Non-Commercial license; 48 sampling steps are recommended for highest quality.",
+    "copyright": "© 2026 Ideogram",
+    "hugging_face_link": "ideogram-ai/ideogram-4-fp8"
+  },
+  {
+    "name": "Ideogram 4 (8-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4](https://huggingface.co/ideogram-ai/ideogram-4-fp8) is a 9.3-billion-parameter open-weight text-to-image foundation model trained from scratch. It excels at multilingual text rendering and design-oriented generation, and supports structured JSON prompts with explicit layout, bounding-box, and color-palette controls. It generates natively at 2K resolution and is released under the Ideogram 4 Non-Commercial license; 48 sampling steps are recommended for highest quality.",
+    "copyright": "© 2026 Ideogram",
+    "hugging_face_link": "ideogram-ai/ideogram-4-fp8"
+  },
+  {
+    "name": "Ideogram 4 (6-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_i6x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4](https://huggingface.co/ideogram-ai/ideogram-4-fp8) is a 9.3-billion-parameter open-weight text-to-image foundation model trained from scratch. It excels at multilingual text rendering and design-oriented generation, and supports structured JSON prompts with explicit layout, bounding-box, and color-palette controls. It generates natively at 2K resolution and is released under the Ideogram 4 Non-Commercial license; 48 sampling steps are recommended for highest quality.",
+    "copyright": "© 2026 Ideogram",
+    "hugging_face_link": "ideogram-ai/ideogram-4-fp8"
+  },
+  {
+    "name": "Ideogram 4 Instant",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_instant_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Instant](https://huggingface.co/fal/ideogram-v4-instant) is an 8-step timestep-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It is designed for the fastest generation while retaining the base model's multilingual text rendering, design-oriented generation, and structured JSON controls. Use 8 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-instant"
+  },
+  {
+    "name": "Ideogram 4 Instant (6-bit)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_instant_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Instant](https://huggingface.co/fal/ideogram-v4-instant) is an 8-step timestep-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It is designed for the fastest generation while retaining the base model's multilingual text rendering, design-oriented generation, and structured JSON controls. Use 8 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-instant"
+  },
+  {
+    "name": "Ideogram 4 Instant (8-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_instant_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Instant](https://huggingface.co/fal/ideogram-v4-instant) is an 8-step timestep-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It is designed for the fastest generation while retaining the base model's multilingual text rendering, design-oriented generation, and structured JSON controls. Use 8 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-instant"
+  },
+  {
+    "name": "Ideogram 4 Instant (6-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_instant_i6x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Instant](https://huggingface.co/fal/ideogram-v4-instant) is an 8-step timestep-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It is designed for the fastest generation while retaining the base model's multilingual text rendering, design-oriented generation, and structured JSON controls. Use 8 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-instant"
+  },
+  {
+    "name": "Ideogram 4 Fast",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_fast_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Fast](https://huggingface.co/fal/ideogram-v4-fast) is a CFG-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It preserves the base model's multilingual text rendering, design-oriented generation, and structured JSON controls while removing the unconditional denoising pass. Use 20 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-fast"
+  },
+  {
+    "name": "Ideogram 4 Fast (6-bit)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_fast_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Fast](https://huggingface.co/fal/ideogram-v4-fast) is a CFG-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It preserves the base model's multilingual text rendering, design-oriented generation, and structured JSON controls while removing the unconditional denoising pass. Use 20 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-fast"
+  },
+  {
+    "name": "Ideogram 4 Fast (8-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_fast_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Fast](https://huggingface.co/fal/ideogram-v4-fast) is a CFG-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It preserves the base model's multilingual text rendering, design-oriented generation, and structured JSON controls while removing the unconditional denoising pass. Use 20 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-fast"
+  },
+  {
+    "name": "Ideogram 4 Fast (6-bit S)",
+    "version": "ideogram_4",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "ideogram_4_fast_i6x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Ideogram 4 Fast](https://huggingface.co/fal/ideogram-v4-fast) is a CFG-distilled variant of the 9.3-billion-parameter Ideogram 4 model. It preserves the base model's multilingual text rendering, design-oriented generation, and structured JSON controls while removing the unconditional denoising pass. Use 20 sampling steps with CFG 1. It is released under the Ideogram 4 Non-Commercial license.",
+    "copyright": "© 2026 Features & Labels, Inc.",
+    "hugging_face_link": "fal/ideogram-v4-fast"
+  },
+  {
+    "name": "Krea 2 Raw",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_raw_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_raw_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Raw](https://huggingface.co/krea/Krea-2-Raw) is the base checkpoint before Krea 2's post-training and fine-tuning. Krea recommends it for fine-tuning or post-training rather than general inference, including training LoRAs for use with Krea 2 Turbo. For direct generation, use 52 sampling steps and CFG 3.5. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Raw"
+  },
+  {
+    "name": "Krea 2 Raw (6-bit)",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_raw_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_raw_q6p.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Raw](https://huggingface.co/krea/Krea-2-Raw) is the base checkpoint before Krea 2's post-training and fine-tuning. Krea recommends it for fine-tuning or post-training rather than general inference, including training LoRAs for use with Krea 2 Turbo. For direct generation, use 52 sampling steps and CFG 3.5. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Raw"
+  },
+  {
+    "name": "Krea 2 Raw (8-bit S)",
+    "version": "krea_2",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "krea_2_raw_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_4b_q8p.ckpt",
+    "clip_encoder": "krea_2_raw_i8x.ckpt",
+    "high_precision_autoencoder": false,
+    "padded_text_encoding_length": 0,
+    "note": "[Krea 2 Raw](https://huggingface.co/krea/Krea-2-Raw) is the base checkpoint before Krea 2's post-training and fine-tuning. Krea recommends it for fine-tuning or post-training rather than general inference, including training LoRAs for use with Krea 2 Turbo. For direct generation, use 52 sampling steps and CFG 3.5. It is released under the Krea 2 Community License.",
+    "copyright": "© 2026 Krea.ai, Inc.",
+    "hugging_face_link": "krea/Krea-2-Raw"
+  },
+  {
+    "name": "Anima Aesthetic 1.1",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_aesthetic_1.1_f16.ckpt",
+    "file": "anima_aesthetic_1.1_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Aesthetic 1.1 (8-bit)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_aesthetic_1.1_q8p.ckpt",
+    "file": "anima_aesthetic_1.1_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Aesthetic 1.1 (8-bit S)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_aesthetic_1.1_i8x.ckpt",
+    "file": "anima_aesthetic_1.1_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Turbo 1.0",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_turbo_1.0_f16.ckpt",
+    "file": "anima_turbo_1.0_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 4-8 sampling steps and CFG 1 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Turbo 1.0 (8-bit)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_turbo_1.0_q8p.ckpt",
+    "file": "anima_turbo_1.0_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 4-8 sampling steps and CFG 1 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Turbo 1.0 (8-bit S)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_turbo_1.0_i8x.ckpt",
+    "file": "anima_turbo_1.0_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 4-8 sampling steps and CFG 1 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Base 1.0",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_base_1.0_f16.ckpt",
+    "file": "anima_base_1.0_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Base 1.0 (8-bit)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_base_1.0_q8p.ckpt",
+    "file": "anima_base_1.0_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "Anima Base 1.0 (8-bit S)",
+    "version": "cosmos2.5_2b",
+    "autoencoder": "qwen_image_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "clip_encoder": "anima_base_1.0_i8x.ckpt",
+    "file": "anima_base_1.0_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_0.6b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[Anima](https://huggingface.co/circlestone-labs/Anima) is a 2B text-to-image model from CircleStone Labs and Comfy Org, focused on anime concepts, characters, styles, illustrations, and other non-photorealistic art. Preview 3 is an intermediate checkpoint built on NVIDIA Cosmos and released under the CircleStone Labs non-commercial license. It is intended for around 1MP generation, with 30-50 sampling steps and CFG 4-5 recommended.",
+    "copyright": "© 2026 CircleStone Labs",
+    "hugging_face_link": "circlestone-labs/Anima"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9B"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B (6-bit)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9B"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B (8-bit S)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9B"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B KV",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext_kv",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_kv_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9b-kv"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B KV (6-bit)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext_kv",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_kv_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9b-kv"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B KV (8-bit S)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext_kv",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_9b_kv_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9b-kv"
+  },
+  {
+    "name": "FLUX.2 [dev]",
+    "version": "flux2",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_dev_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "mistral_small_3.2_24b_instruct_2506_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "guidance_embed": true,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2025 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-dev"
+  },
+  {
+    "name": "FLUX.2 [dev] (6-bit)",
+    "version": "flux2",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_dev_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "mistral_small_3.2_24b_instruct_2506_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "guidance_embed": true,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2025 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-dev"
+  },
+  {
+    "name": "FLUX.2 [dev] (8-bit S)",
+    "version": "flux2",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_dev_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "mistral_small_3.2_24b_instruct_2506_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "guidance_embed": true,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2025 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-dev"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B Base",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_base_9b_q8p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-base-9B"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B Base (6-bit)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_base_9b_q6p.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-base-9B"
+  },
+  {
+    "name": "FLUX.2 [klein] 9B Base (8-bit S)",
+    "version": "flux2_9b",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 32,
+    "file": "flux_2_klein_base_9b_i8x.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_8b_q8p.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "padded_text_encoding_length": 512,
+    "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
+    "copyright": "© 2026 Black Forest Labs",
+    "hugging_face_link": "black-forest-labs/FLUX.2-klein-base-9B"
+  },
+  {
+    "name": "Qwen Image 2.1 (Exact)",
+    "version": "qwen_image_2.1",
+    "autoencoder": "qwen_image_2.1_vae_f16.ckpt",
+    "prefix": "",
+    "modifier": "kontext",
+    "default_scale": 16,
+    "hires_fix_scale": 40,
+    "file": "qwen_image_2.1_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "qwen_3_vl_8b_instruct_f16.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "noise_discretization": {
+      "rf": {
+        "_0": {
+          "sigma_min": 0,
+          "sigma_max": 1,
+          "condition_scale": 1000,
+          "shift_terminal": 0.02
+        }
+      }
+    },
+    "note": "[Qwen Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1) supports text-to-image generation, reference-image editing, and native transparency. Provide reference images through the canvas and moodboard, or omit images for text-to-image. For transparent output, explicitly request an RGBA image with an alpha channel and a transparent background. Start with 40 DDIM Trailing steps, Text Guidance 1, and Shift 1 with resolution-dependent shift enabled. Released under the [Qwen Research License Agreement](https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE), for non-commercial research and evaluation; commercial use requires a separate license.",
+    "hugging_face_link": "Qwen/Qwen-Image-2.1"
+  },
+  {
+    "name": "ERNIE Image Turbo 1.0 (Exact)",
+    "version": "ernie_image",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 24,
+    "file": "ernie_image_turbo_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "ministral_3_3b_f16.ckpt",
+    "high_precision_autoencoder": false,
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "note": "[ERNIE-Image-Turbo](https://huggingface.co/baidu/ERNIE-Image-Turbo) is Baidu's Apache 2.0-licensed distilled release of ERNIE-Image, optimized with DMD and RL for fast generation. It keeps the same focus on instruction following, text rendering, and structured layouts, while targeting strong results with CFG 1 and 8 sampling steps."
+  },
+  {
+    "name": "ERNIE Image Base 1.0 (Exact)",
+    "version": "ernie_image",
+    "autoencoder": "flux_2_vae_f16.ckpt",
+    "prefix": "",
+    "default_scale": 16,
+    "hires_fix_scale": 24,
+    "file": "ernie_image_f16.ckpt",
+    "upcast_attention": false,
+    "text_encoder": "ministral_3_3b_f16.ckpt",
+    "objective": {
+      "u": {
+        "condition_scale": 1000
+      }
+    },
+    "note": "[ERNIE-Image](https://huggingface.co/baidu/ERNIE-Image) is Baidu's Apache 2.0-licensed 8B single-stream DiT text-to-image model. It focuses on instruction following, text rendering, and structured layouts such as posters, comics, and multi-panel compositions. The base model is intended for higher-fidelity generation, with 50 sampling steps recommended."
+  },
+  {
     "name": "LTX-2.3 22B [distilled] (Exact)",
     "version": "ltx2.3",
     "autoencoder": "ltx_2.3_audio_video_vae_f16.ckpt",
@@ -24,7 +1150,7 @@
       }
     },
     "note": "[LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) is a significant update to LTX-2 with improved audio and visual quality and enhanced prompt adherence. It is a state-of-the-art open-source audio-video foundation model developed by Lightricks and can generate synchronized video and audio within a single model. The [distilled] checkpoint is the distilled version of the full model and is optimized for fast inference; for best results, use 8 sampling steps and set Text Guidance to 1.0.",
-    "copyright": "\u00a9 2026 Lightricks"
+    "copyright": "© 2026 Lightricks"
   },
   {
     "name": "LTX-2.3 22B [dev] (Exact)",
@@ -50,8 +1176,8 @@
         "condition_scale": 1000
       }
     },
-    "note": "[LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) is a significant update to LTX-2 with improved audio and visual quality and enhanced prompt adherence. It is a state-of-the-art open-source audio-video foundation model developed by Lightricks and can generate synchronized video and audio within a single model. The [dev] checkpoint is the full model variant and is fully trainable. For best results, set Text Guidance to 3.5 and use 20\u201330 sampling steps.",
-    "copyright": "\u00a9 2026 Lightricks"
+    "note": "[LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) is a significant update to LTX-2 with improved audio and visual quality and enhanced prompt adherence. It is a state-of-the-art open-source audio-video foundation model developed by Lightricks and can generate synchronized video and audio within a single model. The [dev] checkpoint is the full model variant and is fully trainable. For best results, set Text Guidance to 3.5 and use 20–30 sampling steps.",
+    "copyright": "© 2026 Lightricks"
   },
   {
     "name": "Qwen Image 2512 (BF16, Exact)",
@@ -198,184 +1324,8 @@
         "59": 2
       }
     },
-    "note": "[Qwen Image 2512](https://huggingface.co/Qwen/Qwen-Image-2512) is the december update of Qwen Image model with improvements on enhanced human realism, finer natural detail and improved text rendering. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended. The BF16 version is only compatible with macOS 15, iOS 18 and above.",
-    "copyright": "\u00a9 2025 Alibaba"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_9b_q8p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9B"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B (6-bit)",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_9b_q6p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9B"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B KV",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext_kv",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_9b_kv_q8p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9b-kv"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B KV (6-bit)",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext_kv",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_9b_kv_q6p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-9b-kv"
-  },
-  {
-    "name": "FLUX.2 [dev]",
-    "version": "flux2",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_dev_q8p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "mistral_small_3.2_24b_instruct_2506_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "guidance_embed": true,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2025 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-dev"
-  },
-  {
-    "name": "FLUX.2 [dev] (6-bit)",
-    "version": "flux2",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_dev_q6p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "mistral_small_3.2_24b_instruct_2506_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "guidance_embed": true,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2025 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-dev"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B Base",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_base_9b_q8p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-base-9B"
-  },
-  {
-    "name": "FLUX.2 [klein] 9B Base (6-bit)",
-    "version": "flux2_9b",
-    "autoencoder": "flux_2_vae_f16.ckpt",
-    "prefix": "",
-    "modifier": "kontext",
-    "default_scale": 16,
-    "hires_fix_scale": 32,
-    "file": "flux_2_klein_base_9b_q6p.ckpt",
-    "upcast_attention": false,
-    "text_encoder": "qwen_3_8b_q8p.ckpt",
-    "high_precision_autoencoder": false,
-    "objective": {
-      "u": {
-        "condition_scale": 1000
-      }
-    },
-    "padded_text_encoding_length": 512,
-    "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs",
-    "hugging_face_link": "black-forest-labs/FLUX.2-klein-base-9B"
+    "note": "[Qwen Image 2512](https://huggingface.co/Qwen/Qwen-Image-2512) is the december update of Qwen Image model with improvements on enhanced human realism, finer natural detail and improved text rendering. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended. The BF16 version is only compatible with macOS 15, iOS 18 and above.",
+    "copyright": "© 2025 Alibaba"
   },
   {
     "name": "FLUX.2 [klein] 4B (Exact)",
@@ -396,7 +1346,7 @@
     },
     "padded_text_encoding_length": 512,
     "note": "[FLUX.2 [klein] 4B](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B) is a 4 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs"
+    "copyright": "© 2026 Black Forest Labs"
   },
   {
     "name": "FLUX.2 [klein] 4B Base (Exact)",
@@ -417,7 +1367,7 @@
     },
     "padded_text_encoding_length": 512,
     "note": "[FLUX.2 [klein] 4B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-4B) is a 4 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs"
+    "copyright": "© 2026 Black Forest Labs"
   },
   {
     "name": "FLUX.2 [klein] 9B (Exact)",
@@ -438,7 +1388,7 @@
     },
     "padded_text_encoding_length": 512,
     "note": "[FLUX.2 [klein] 9B](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs"
+    "copyright": "© 2026 Black Forest Labs"
   },
   {
     "name": "FLUX.2 [klein] 9B KV (Exact)",
@@ -459,7 +1409,7 @@
     },
     "padded_text_encoding_length": 512,
     "note": "[FLUX.2 [klein] 9B KV](https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-kv) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions. This version contains KV-cache optimization that can speed-up inference.",
-    "copyright": "\u00a9 2026 Black Forest Labs"
+    "copyright": "© 2026 Black Forest Labs"
   },
   {
     "name": "FLUX.2 [klein] 9B Base (Exact)",
@@ -480,7 +1430,7 @@
     },
     "padded_text_encoding_length": 512,
     "note": "[FLUX.2 [klein] 9B Base](https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B) is a 9 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2026 Black Forest Labs"
+    "copyright": "© 2026 Black Forest Labs"
   },
   {
     "name": "FLUX.2 [dev] (Exact)",
@@ -501,7 +1451,7 @@
       }
     },
     "note": "[FLUX.2 [dev]](https://huggingface.co/black-forest-labs/FLUX.2-dev) is a 32 billion parameter rectified flow transformer capable of generating, editing and combining images based on text instructions.",
-    "copyright": "\u00a9 2025 Black Forest Labs"
+    "copyright": "© 2025 Black Forest Labs"
   },
   {
     "name": "Z Image Turbo 1.0 (Exact)",
@@ -704,7 +1654,7 @@
       }
     },
     "is_bf16": true,
-    "note": "[Qwen Image](https://huggingface.co/Qwen/Qwen-Image) is a state-of-the-art open-source image generation model known for its exceptional text layout and prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended. The BF16 version is only compatible with macOS 15, iOS 18 and above."
+    "note": "[Qwen Image](https://huggingface.co/Qwen/Qwen-Image) is a state-of-the-art open-source image generation model known for its exceptional text layout and prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended. The BF16 version is only compatible with macOS 15, iOS 18 and above."
   },
   {
     "name": "Qwen Image 1.0 (Exact)",
@@ -722,7 +1672,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[Qwen Image](https://huggingface.co/Qwen/Qwen-Image) is a state-of-the-art open-source image generation model known for its exceptional text layout and prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended."
+    "note": "[Qwen Image](https://huggingface.co/Qwen/Qwen-Image) is a state-of-the-art open-source image generation model known for its exceptional text layout and prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended."
   },
   {
     "name": "Qwen Image Edit 2509 (BF16, Exact)",
@@ -743,7 +1693,7 @@
       }
     },
     "is_bf16": true,
-    "note": "[Qwen Image Edit 2509](https://huggingface.co/Qwen/Qwen-Image-2509) is a state-of-the-art open-source image edit model excels at image edit tasks such as background alternation, style transfer, object removal etc. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended. This is an update in Sep, 2025. The BF16 version is only compatible with macOS 15, iOS 18 and above."
+    "note": "[Qwen Image Edit 2509](https://huggingface.co/Qwen/Qwen-Image-2509) is a state-of-the-art open-source image edit model excels at image edit tasks such as background alternation, style transfer, object removal etc. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended. This is an update in Sep, 2025. The BF16 version is only compatible with macOS 15, iOS 18 and above."
   },
   {
     "name": "Qwen Image Edit 2509 (Exact)",
@@ -763,7 +1713,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[Qwen Image Edit 2509](https://huggingface.co/Qwen/Qwen-Image-2509) is a state-of-the-art open-source image edit model excels at image edit tasks such as background alternation, style transfer, object removal etc. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended. This is an update in Sep, 2025."
+    "note": "[Qwen Image Edit 2509](https://huggingface.co/Qwen/Qwen-Image-2509) is a state-of-the-art open-source image edit model excels at image edit tasks such as background alternation, style transfer, object removal etc. It is Apache 2.0-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended. This is an update in Sep, 2025."
   },
   {
     "name": "FLUX.1 Kontext [dev]",
@@ -1075,7 +2025,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[HiDream-I1 [dev]](https://huggingface.co/HiDream-ai/HiDream-I1-Dev) is a state-of-the-art open-source image generation model known for its strong prompt adherence across diverse styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 20\u201330 sampling steps recommended. Text guidance is not effective for this model."
+    "note": "[HiDream-I1 [dev]](https://huggingface.co/HiDream-ai/HiDream-I1-Dev) is a state-of-the-art open-source image generation model known for its strong prompt adherence across diverse styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 20–30 sampling steps recommended. Text guidance is not effective for this model."
   },
   {
     "name": "HiDream I1 [full] (Exact)",
@@ -1099,7 +2049,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[HiDream-I1 [full]](https://huggingface.co/HiDream-ai/HiDream-I1-Full) is a state-of-the-art open-source image generation model known for its exceptional prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30\u201350 sampling steps recommended."
+    "note": "[HiDream-I1 [full]](https://huggingface.co/HiDream-ai/HiDream-I1-Full) is a state-of-the-art open-source image generation model known for its exceptional prompt adherence across a wide range of styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 30–50 sampling steps recommended."
   },
   {
     "name": "HiDream I1 [fast] (Exact)",
@@ -1124,7 +2074,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[HiDream-I1 [fast]](https://huggingface.co/HiDream-ai/HiDream-I1-Fast) is a state-of-the-art open-source image generation model known for its strong prompt adherence across diverse styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 10\u201320 sampling steps recommended. Text guidance is not effective for this model."
+    "note": "[HiDream-I1 [fast]](https://huggingface.co/HiDream-ai/HiDream-I1-Fast) is a state-of-the-art open-source image generation model known for its strong prompt adherence across diverse styles, including photorealistic, cartoon, and artistic. It is MIT-licensed and commercially friendly. The model is trained at multiple resolutions using a Flow Matching objective; trailing samplers yield the best results, with 10–20 sampling steps recommended. Text guidance is not effective for this model."
   },
   {
     "name": "HiDream E1-1 (Exact)",
@@ -1149,7 +2099,7 @@
         "condition_scale": 1000
       }
     },
-    "note": "[HiDream-E1-1](https://huggingface.co/HiDream-ai/HiDream-E1-1) is an image editing model built on HiDream-I1. It is MIT-licensed and commercially friendly. Trained at dynamic resolutions (around 1MP) using a Flow Matching objective, the model performs best with trailing samplers and 30\u201350 sampling steps."
+    "note": "[HiDream-E1-1](https://huggingface.co/HiDream-ai/HiDream-E1-1) is an image editing model built on HiDream-I1. It is MIT-licensed and commercially friendly. Trained at dynamic resolutions (around 1MP) using a Flow Matching objective, the model performs best with trailing samplers and 30–50 sampling steps."
   },
   {
     "name": "FLUX.1 [dev] (Exact)",
@@ -1363,7 +2313,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[Hunyuan Video](https://huggingface.co/tencent/HunyuanVideo) is a state-of-the-art text-to-video model developed by Tencent. It can generate video clips of up to 5 seconds in length. The recommended resolutions are 960\u00d7544 or 1280\u00d7720. The model supports up to 129 frames, with a recommended shift value of 7.0."
+    "note": "[Hunyuan Video](https://huggingface.co/tencent/HunyuanVideo) is a state-of-the-art text-to-video model developed by Tencent. It can generate video clips of up to 5 seconds in length. The recommended resolutions are 960×544 or 1280×720. The model supports up to 129 frames, with a recommended shift value of 7.0."
   },
   {
     "name": "Hunyuan Video T2V 720p (5-bit, SVDQuant)",
@@ -1391,7 +2341,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[Hunyuan Video](https://huggingface.co/tencent/HunyuanVideo) is a state-of-the-art text-to-video model developed by Tencent. It can generate video clips of up to 5 seconds in length. The recommended resolutions are 960\u00d7544 or 1280\u00d7720. The model supports up to 129 frames, with a recommended shift value of 7.0.",
+    "note": "[Hunyuan Video](https://huggingface.co/tencent/HunyuanVideo) is a state-of-the-art text-to-video model developed by Tencent. It can generate video clips of up to 5 seconds in length. The recommended resolutions are 960×544 or 1280×720. The model supports up to 129 frames, with a recommended shift value of 7.0.",
     "builtin_lora": true
   },
   {
@@ -2649,7 +3599,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent\u2019s state-of-the-art text-to-video model. It can generate video clips up to 4 seconds long at a recommended resolution of 960\u00d7544. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6."
+    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent’s state-of-the-art text-to-video model. It can generate video clips up to 4 seconds long at a recommended resolution of 960×544. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6."
   },
   {
     "name": "SkyReels v1 Hunyuan T2V 544p (5-bit, SVDQuant)",
@@ -2677,7 +3627,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent\u2019s state-of-the-art text-to-video model. It can generate video clips up to 4 seconds long at a recommended resolution of 960\u00d7544. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6.",
+    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent’s state-of-the-art text-to-video model. It can generate video clips up to 4 seconds long at a recommended resolution of 960×544. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6.",
     "builtin_lora": true
   },
   {
@@ -2707,7 +3657,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent\u2019s state-of-the-art text-to-video model. SkyReels v1 I2V is an image-to-video (img2vid) fine-tune that generates video clips up to 4 seconds long from a single image. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6."
+    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent’s state-of-the-art text-to-video model. SkyReels v1 I2V is an image-to-video (img2vid) fine-tune that generates video clips up to 4 seconds long from a single image. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6."
   },
   {
     "name": "SkyReels v1 Hunyuan I2V 544p (5-bit, SVDQuant)",
@@ -2736,7 +3686,7 @@
       -3.149878,
       0.0961237896
     ],
-    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent\u2019s state-of-the-art text-to-video model. SkyReels v1 I2V is an image-to-video (img2vid) fine-tune that generates video clips up to 4 seconds long from a single image. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6.",
+    "note": "[SkyReels v1](https://huggingface.co/collections/Skywork/skyreels-v1-67b34676ff65b4ec02d16307) is a significant fine-tune of Hunyuan Video, Tencent’s state-of-the-art text-to-video model. SkyReels v1 I2V is an image-to-video (img2vid) fine-tune that generates video clips up to 4 seconds long from a single image. The model supports up to 97 frames, with a recommended shift value of 7.0 or higher. For optimal results, disable \"Speedup w/ Guidance Embed\" by setting it to 1.0 and use a Text Guidance value of 6.",
     "builtin_lora": true
   },
   {
@@ -2924,7 +3874,7 @@
     ]
   },
   {
-    "name": "Stable Cascade (W\u00fcrstchen v3.0)",
+    "name": "Stable Cascade (Würstchen v3.0)",
     "stage_models": [
       "wurstchen_3.0_stage_b_f16.ckpt"
     ],
@@ -2937,7 +3887,7 @@
     "prefix": ""
   },
   {
-    "name": "Stable Cascade (W\u00fcrstchen v3.0) (8-bit)",
+    "name": "Stable Cascade (Würstchen v3.0) (8-bit)",
     "stage_models": [
       "wurstchen_3.0_stage_b_q6p_q8p.ckpt"
     ],

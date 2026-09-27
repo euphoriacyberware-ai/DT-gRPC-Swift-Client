@@ -9,6 +9,7 @@
 //  See LICENSE file in the project root for license information.
 //
 
+import CoreGraphics
 import CryptoKit
 import FlatBuffers
 import Foundation
@@ -175,87 +176,155 @@ public actor DrawThingsService {
 
     // MARK: - Generation
 
-    /// Generates images (and audio, for video models with sound).
+    /// Generates a request, streaming progress, previews, images and audio as they arrive.
     ///
-    /// Handlers are awaited in the order the server sends events, and the call returns only
-    /// after every handler has finished. Cancelling the calling task cancels the generation
-    /// on the server.
+    /// Events are delivered in the order the server sends them; the last event of a successful
+    /// generation is ``GenerationEvent/completed(_:)``. Cancelling the consuming task (or
+    /// breaking out of the loop) cancels the generation on the server.
     ///
-    /// - Parameters:
-    ///   - configuration: FlatBuffer-encoded configuration (``DrawThingsConfiguration/toFlatBufferData()``).
-    ///   - image: Input image tensor for image-to-image.
-    ///   - mask: Inpainting mask tensor.
-    ///   - contents: Additional tensors referenced by SHA-256 from hints.
-    ///   - override: Explicit model metadata; when nil, specs are resolved by ``modelSpecs``.
-    /// - Returns: The generated image tensors.
-    public func generateImage(
-        prompt: String,
-        negativePrompt: String = "",
-        configuration: Data,
-        image: Data? = nil,
-        mask: Data? = nil,
-        hints: [HintProto] = [],
-        contents: [Data] = [],
-        override: MetadataOverride? = nil,
-        scaleFactor: Int32 = 1,
-        progressHandler: @escaping @Sendable (ImageGenerationSignpostProto?) async -> Void = { _ in },
-        previewHandler: @escaping @Sendable (Data) async -> Void = { _ in },
-        audioHandler: @escaping @Sendable (Data) async -> Void = { _ in }
-    ) async throws -> [Data] {
+    /// ```swift
+    /// for try await event in service.stream(request) {
+    ///     switch event {
+    ///     case .progress(let progress): print(progress.stage)
+    ///     case .preview(let image): show(image)
+    ///     case .completed(let result): save(result.images)
+    ///     default: break
+    ///     }
+    /// }
+    /// ```
+    public nonisolated func stream(_ request: GenerationRequest) -> AsyncThrowingStream<GenerationEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let result = try await self.run(request) { continuation.yield($0) }
+                    continuation.yield(.completed(result))
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Generates a request and returns the result once it completes.
+    ///
+    /// - Parameter onEvent: Called for each event before the result is returned, in order.
+    public func generate(
+        _ request: GenerationRequest,
+        onEvent: (@Sendable (GenerationEvent) async -> Void)? = nil
+    ) async throws -> GenerationResult {
+        for try await event in stream(request) {
+            if let onEvent { await onEvent(event) }
+            if case .completed(let result) = event { return result }
+        }
+        throw CancellationError()
+    }
+
+    /// Encodes the request, sends it and decodes the response stream, emitting events in order.
+    private func run(_ request: GenerationRequest, emit: @escaping @Sendable (GenerationEvent) -> Void) async throws -> GenerationResult {
+        let startedAt = Date()
+        // Encode off the actor: converting large images is CPU-heavy.
+        let input = try await Task.detached(priority: .userInitiated) { try PreparedGenerationInput(request) }.value
         try await ensureEchoed()
 
-        let effectiveOverride: MetadataOverride?
-        if let override {
-            effectiveOverride = override
+        let override: MetadataOverride?
+        if let explicit = request.override {
+            override = explicit
         } else {
-            let (modelFile, loraFiles) = try Self.modelAndLoRAFiles(in: configuration)
-            if let modelFile {
-                effectiveOverride = await modelSpecs.override(forModel: modelFile, loraFiles: loraFiles, base: serverOverride)
+            let files = try Self.modelFiles(in: input.configuration)
+            if let modelFile = files.model {
+                override = await modelSpecs.override(
+                    forModel: modelFile, refinerModel: files.refiner, loraFiles: files.loras, base: serverOverride)
             } else {
-                effectiveOverride = serverOverride
+                override = serverOverride
             }
         }
 
-        let request = makeRequest(
-            prompt: prompt, negativePrompt: negativePrompt, configuration: configuration,
-            image: image, mask: mask, hints: hints, contents: contents,
-            override: effectiveOverride, scaleFactor: scaleFactor
+        let message = makeRequest(
+            prompt: request.prompt, negativePrompt: request.negativePrompt, configuration: input.configuration,
+            image: input.image, mask: input.mask, hints: request.hints, contents: [],
+            override: override, scaleFactor: 1
         )
-        DTLogger.debug("Sending request: config \(configuration.count) bytes, hints \(hints.count), contents \(request.contents.count)", category: .grpc)
+        DTLogger.debug("Sending request \(request.id): config \(input.configuration.count) bytes, contents \(message.contents.count), hints \(request.hints.count)", category: .grpc)
 
+        let media = request.media
+        let totalSteps = Int(request.configuration.steps)
+        let outputs: (images: [CGImage], audio: [GeneratedAudio])
         do {
-            return try await connection().generateImage(request: ClientRequest(message: request), options: streamingCallOptions) { response in
+            outputs = try await connection().generateImage(request: ClientRequest(message: message), options: streamingCallOptions) { response in
                 var assembler = ResponseAssembler()
-                var images: [Data] = []
+                var images: [CGImage] = []
+                var audio: [GeneratedAudio] = []
                 var lastPreview: Data?
-                var count = 0
                 for try await message in response.messages {
-                    count += 1
-                    if message.hasCurrentSignpost {
-                        await progressHandler(message.currentSignpost)
+                    if message.hasCurrentSignpost, let stage = GenerationStage(message.currentSignpost) {
+                        var step: Int?
+                        if case .sampling(let current) = stage { step = current }
+                        if case .secondPassSampling(let current) = stage { step = current }
+                        emit(.progress(GenerationProgress(stage: stage, step: step, totalSteps: totalSteps)))
+                    }
+                    if message.hasRemoteDownload {
+                        let download = message.remoteDownload
+                        emit(.remoteDownload(RemoteDownloadProgress(
+                            bytesReceived: download.bytesReceived, bytesExpected: download.bytesExpected,
+                            item: Int(download.item), itemCount: Int(download.itemsExpected))))
                     }
                     if message.hasPreviewImage {
                         lastPreview = message.previewImage
-                        await previewHandler(message.previewImage)
+                        // A preview that can't be decoded must not fail the generation.
+                        if let preview = try? ImageHelpers.dtTensorToCGImage(message.previewImage, modelFamily: media.family) {
+                            emit(.preview(preview))
+                        }
                     }
-                    let output = assembler.consume(message)
-                    images.append(contentsOf: output.images)
-                    for audio in output.audio {
-                        await audioHandler(audio)
+                    let completed = assembler.consume(message)
+                    for tensor in completed.images {
+                        let image = try Self.decodeImage(tensor, family: media.family)
+                        emit(.image(image, index: images.count))
+                        images.append(image)
+                    }
+                    for tensor in completed.audio {
+                        let track = try Self.decodeAudio(tensor, sampleRate: media.audioSampleRate ?? ModelFamily.defaultAudioSampleRate)
+                        emit(.audio(track))
+                        audio.append(track)
                     }
                 }
-                DTLogger.debug("Stream completed after \(count) responses, \(images.count) image(s)", category: .grpc)
                 if assembler.hasIncompleteTensor {
                     throw DrawThingsError.incompleteResponse("the stream ended in the middle of a chunked tensor")
                 }
                 if images.isEmpty, let lastPreview {
+                    // Some servers only send the final image as a preview.
                     DTLogger.info("No generated images received, using last preview image as result", category: .grpc)
-                    images.append(lastPreview)
+                    let image = try Self.decodeImage(lastPreview, family: media.family)
+                    emit(.image(image, index: 0))
+                    images.append(image)
                 }
-                return images
+                return (images, audio)
             }
         } catch {
             throw DrawThingsError.map(error)
+        }
+
+        DTLogger.debug("Request \(request.id) completed: \(outputs.images.count) image(s), \(outputs.audio.count) audio track(s)", category: .grpc)
+        return GenerationResult(
+            request: request, images: outputs.images, audio: outputs.audio, media: media,
+            startedAt: startedAt, completedAt: Date()
+        )
+    }
+
+    private static func decodeImage(_ tensor: Data, family: ModelFamily) throws -> CGImage {
+        do {
+            return try ImageHelpers.dtTensorToCGImage(tensor, modelFamily: family)
+        } catch {
+            throw DrawThingsError.decodingFailed("generated image (\(tensor.count) bytes): \(error.localizedDescription)")
+        }
+    }
+
+    private static func decodeAudio(_ tensor: Data, sampleRate: Double) throws -> GeneratedAudio {
+        do {
+            return try GeneratedAudio(tensor: tensor, sampleRate: sampleRate)
+        } catch {
+            throw DrawThingsError.decodingFailed("generated audio (\(tensor.count) bytes): \(error)")
         }
     }
 
@@ -310,8 +379,8 @@ public actor DrawThingsService {
         }
     }
 
-    /// Reads the model and LoRA file names from a FlatBuffer configuration.
-    static func modelAndLoRAFiles(in configuration: Data) throws -> (model: String?, loras: [String]) {
+    /// Reads the model, refiner and LoRA file names from a FlatBuffer configuration.
+    static func modelFiles(in configuration: Data) throws -> (model: String?, refiner: String?, loras: [String]) {
         var buffer = ByteBuffer(data: configuration)
         let config: GenerationConfiguration
         do {
@@ -320,7 +389,7 @@ public actor DrawThingsService {
             throw DrawThingsError.invalidConfiguration(field: "configuration", reason: "not a valid FlatBuffer (\(error))")
         }
         let loras = (0..<config.lorasCount).compactMap { config.loras(at: $0)?.file }
-        return (config.model, loras)
+        return (config.model, config.refinerModel, loras)
     }
 
     private static func transportSecurity(

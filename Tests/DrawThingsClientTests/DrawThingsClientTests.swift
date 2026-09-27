@@ -145,61 +145,61 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertEqual(GenerationStage.imageDecoding.description, "Decoding generated image...")
     }
 
-    func testLatentModelFamilyDetection() {
+    func testModelFamilyDetection() {
         // SD 1.x/2.x/SVD must be distinguished from SDXL (different 4-channel coefficients).
-        XCTAssertEqual(LatentModelFamily.detect(from: "v1"), .sd1)
-        XCTAssertEqual(LatentModelFamily.detect(from: "v2"), .sd1)
-        XCTAssertEqual(LatentModelFamily.detect(from: "svd_xt_1.1.safetensors"), .sd1)
-        XCTAssertEqual(LatentModelFamily.detect(from: "sd_xl_base_1.0.safetensors"), .sdxl)
-        XCTAssertEqual(LatentModelFamily.detect(from: "sdxlBase"), .sdxl)
-        XCTAssertEqual(LatentModelFamily.detect(from: "pixart"), .sdxl)
+        XCTAssertEqual(ModelFamily.detect(from: "v1"), .sd1)
+        XCTAssertEqual(ModelFamily.detect(from: "v2"), .sd1)
+        XCTAssertEqual(ModelFamily.detect(from: "svd_xt_1.1.safetensors"), .sd1)
+        XCTAssertEqual(ModelFamily.detect(from: "sd_xl_base_1.0.safetensors"), .sdxl)
+        XCTAssertEqual(ModelFamily.detect(from: "sdxlBase"), .sdxl)
+        XCTAssertEqual(ModelFamily.detect(from: "pixart"), .sdxl)
 
         // HiDream-O1 (patch decode) must not be confused with HiDream-I1 (Flux coefficients).
-        XCTAssertEqual(LatentModelFamily.detect(from: "hidreamo1"), .hiDreamO1)
-        XCTAssertEqual(LatentModelFamily.detect(from: "hidream_o1"), .hiDreamO1)
-        XCTAssertEqual(LatentModelFamily.detect(from: "hidreami1"), .flux)
+        XCTAssertEqual(ModelFamily.detect(from: "hidreamo1"), .hiDreamO1)
+        XCTAssertEqual(ModelFamily.detect(from: "hidream_o1"), .hiDreamO1)
+        XCTAssertEqual(ModelFamily.detect(from: "hidreami1"), .flux)
 
         // New models reusing existing coefficient families.
-        XCTAssertEqual(LatentModelFamily.detect(from: "cosmos2_5_2b"), .qwen)
-        XCTAssertEqual(LatentModelFamily.detect(from: "ernieImage"), .flux2)
-        XCTAssertEqual(LatentModelFamily.detect(from: "seedvr2_3b"), .flux)
+        XCTAssertEqual(ModelFamily.detect(from: "cosmos2_5_2b"), .qwen)
+        XCTAssertEqual(ModelFamily.detect(from: "ernieImage"), .flux2)
+        XCTAssertEqual(ModelFamily.detect(from: "seedvr2_3b"), .flux)
 
         // Newly recognized older families.
-        XCTAssertEqual(LatentModelFamily.detect(from: "kandinsky21"), .kandinsky)
-        XCTAssertEqual(LatentModelFamily.detect(from: "wurstchenStageC"), .wurstchen)
+        XCTAssertEqual(ModelFamily.detect(from: "kandinsky21"), .kandinsky)
+        XCTAssertEqual(ModelFamily.detect(from: "wurstchenStageC"), .wurstchen)
 
         // Regression checks on existing routing.
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwenImage"), .qwen)
-        XCTAssertEqual(LatentModelFamily.detect(from: "flux1"), .flux)
-        XCTAssertEqual(LatentModelFamily.detect(from: "wan22_5b"), .wan22)
-        XCTAssertEqual(LatentModelFamily.detect(from: "totally-unknown-model"), .unknown)
+        XCTAssertEqual(ModelFamily.detect(from: "qwenImage"), .qwen)
+        XCTAssertEqual(ModelFamily.detect(from: "flux1"), .flux)
+        XCTAssertEqual(ModelFamily.detect(from: "wan22_5b"), .wan22)
+        XCTAssertEqual(ModelFamily.detect(from: "totally-unknown-model"), .unknown)
 
         // MiniMax H3 and LongCat-Video Avatar (version strings and filenames).
-        XCTAssertEqual(LatentModelFamily.detect(from: "minimaxH3"), .minimaxH3)
-        XCTAssertEqual(LatentModelFamily.detect(from: "minimax_h3"), .minimaxH3)
-        XCTAssertEqual(LatentModelFamily.detect(from: "minimax_h3_q8p.ckpt"), .minimaxH3)
-        XCTAssertEqual(LatentModelFamily.detect(from: "longcatVideoAvatar1_5"), .longcatVideoAvatar)
-        XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_v1.5"), .longcatVideoAvatar)
-        XCTAssertEqual(LatentModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt"), .longcatVideoAvatar)
+        XCTAssertEqual(ModelFamily.detect(from: "minimaxH3"), .minimaxH3)
+        XCTAssertEqual(ModelFamily.detect(from: "minimax_h3"), .minimaxH3)
+        XCTAssertEqual(ModelFamily.detect(from: "minimax_h3_q8p.ckpt"), .minimaxH3)
+        XCTAssertEqual(ModelFamily.detect(from: "longcatVideoAvatar1_5"), .longcatVideoAvatar)
+        XCTAssertEqual(ModelFamily.detect(from: "longcat_video_avatar_v1.5"), .longcatVideoAvatar)
+        XCTAssertEqual(ModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt"), .longcatVideoAvatar)
 
         // Qwen Image 2.1 has its own 64-channel family; other Qwen Image releases stay on .qwen.
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwenImage2_1"), .qwen21)
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2.1"), .qwen21)
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2.1_q8p.ckpt"), .qwen21)
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_2512_q8p.ckpt"), .qwen)
-        XCTAssertEqual(LatentModelFamily.detect(from: "qwen_image_edit_2511_q8p.ckpt"), .qwen)
+        XCTAssertEqual(ModelFamily.detect(from: "qwenImage2_1"), .qwen21)
+        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2.1"), .qwen21)
+        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2.1_q8p.ckpt"), .qwen21)
+        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2512_q8p.ckpt"), .qwen)
+        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_edit_2511_q8p.ckpt"), .qwen)
     }
 
-    func testLatentModelFamilyChannels() {
-        XCTAssertEqual(LatentModelFamily.sd1.latentChannels, 4)
-        XCTAssertEqual(LatentModelFamily.kandinsky.latentChannels, 4)
-        XCTAssertEqual(LatentModelFamily.wurstchen.latentChannels, 4)
-        XCTAssertEqual(LatentModelFamily.flux2.latentChannels, 32)
-        XCTAssertEqual(LatentModelFamily.wan22.latentChannels, 48)
-        XCTAssertEqual(LatentModelFamily.hiDreamO1.latentChannels, 3 * 32 * 32)
-        XCTAssertEqual(LatentModelFamily.minimaxH3.latentChannels, 24)
-        XCTAssertEqual(LatentModelFamily.longcatVideoAvatar.latentChannels, 16)
-        XCTAssertEqual(LatentModelFamily.qwen21.latentChannels, 64)
+    func testModelFamilyChannels() {
+        XCTAssertEqual(ModelFamily.sd1.latentChannels, 4)
+        XCTAssertEqual(ModelFamily.kandinsky.latentChannels, 4)
+        XCTAssertEqual(ModelFamily.wurstchen.latentChannels, 4)
+        XCTAssertEqual(ModelFamily.flux2.latentChannels, 32)
+        XCTAssertEqual(ModelFamily.wan22.latentChannels, 48)
+        XCTAssertEqual(ModelFamily.hiDreamO1.latentChannels, 3 * 32 * 32)
+        XCTAssertEqual(ModelFamily.minimaxH3.latentChannels, 24)
+        XCTAssertEqual(ModelFamily.longcatVideoAvatar.latentChannels, 16)
+        XCTAssertEqual(ModelFamily.qwen21.latentChannels, 64)
     }
 
     /// Build an uncompressed NHWC float16 DTTensor with the given per-pixel channel values.
@@ -250,10 +250,10 @@ final class DrawThingsClientTests: XCTestCase {
         XCTAssertNoThrow(try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21))
     }
 
-    func testLatentModelFamilyNativeFrameRate() {
-        XCTAssertEqual(LatentModelFamily.minimaxH3.nativeFrameRate, 24)
-        XCTAssertEqual(LatentModelFamily.longcatVideoAvatar.nativeFrameRate, 25)
-        XCTAssertNil(LatentModelFamily.flux.nativeFrameRate)
+    func testModelFamilyNativeFrameRate() {
+        XCTAssertEqual(ModelFamily.minimaxH3.nativeFrameRate, 24)
+        XCTAssertEqual(ModelFamily.longcatVideoAvatar.nativeFrameRate, 25)
+        XCTAssertNil(ModelFamily.flux.nativeFrameRate)
     }
 
     func testMiniMaxH3AudioHeight() {

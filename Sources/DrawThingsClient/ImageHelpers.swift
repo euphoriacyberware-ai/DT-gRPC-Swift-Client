@@ -23,247 +23,6 @@ public typealias PlatformImage = UIImage
 public typealias PlatformColor = UIColor
 #endif
 
-// MARK: - Latent Model Family
-
-/// Model families for latent-to-RGB preview conversion.
-///
-/// Different model architectures use different latent space representations,
-/// requiring specific coefficients to convert previews to displayable RGB images.
-public enum LatentModelFamily: String, Sendable, CaseIterable {
-    /// Stable Diffusion 1.x, 2.x (4-channel latent)
-    case sd1
-    /// Stable Diffusion XL (4-channel latent)
-    case sdxl
-    /// Stable Diffusion 3 (16-channel latent)
-    case sd3
-    /// Flux.1 models (16-channel latent)
-    case flux
-    /// HunyuanVideo (16-channel latent)
-    case hunyuanVideo
-    /// Qwen Image Edit (16-channel latent, same coefficients as Wan 2.1)
-    case qwen
-    /// Qwen Image 2.1 (64-channel latent; final images are RGBA from its transparent decoder)
-    case qwen21
-    /// Z Image (16-channel latent, uses Flux-like coefficients)
-    case zImage
-    /// Wan 2.1 models (16-channel latent)
-    case wan21
-    /// Wan 2.2 5B model (48-channel latent)
-    case wan22
-    /// Flux 2 models (32-channel latent)
-    case flux2
-    /// LTX-2 models (16-channel latent, TAESD-only preview)
-    case ltx2
-    /// LTX-2.3 models (16-channel latent, TAESD-only preview)
-    case ltx23
-    /// HiDream-O1 (patch-packed latent: 3 × 32 × 32 channels, patch-based preview decode)
-    case hiDreamO1
-    /// Kandinsky 2.1 (4-channel latent, OKLab color space)
-    case kandinsky
-    /// Würstchen / Stable Cascade Stage B/C (3- or 4-channel latent)
-    case wurstchen
-    /// MiniMax H3 (24-channel video latent with audio latent rows packed below)
-    case minimaxH3
-    /// LongCat-Video Avatar 1.5 (16-channel latent, same coefficients as Wan 2.1, 25 fps)
-    case longcatVideoAvatar
-    /// Unknown model - will use default coefficients
-    case unknown
-
-    /// Detect model family from model filename or version string.
-    ///
-    /// - Parameter modelNameOrVersion: The model filename (e.g., "flux1-dev-q8p.gguf") or version string (e.g., "qwenImage", "flux1")
-    /// - Returns: The detected model family
-    public static func detect(from modelNameOrVersion: String) -> LatentModelFamily {
-        let lowercased = modelNameOrVersion.lowercased()
-
-        // First check for exact version identifiers from Draw Things (case-insensitive).
-        // These come from CheckpointModel.version and mirror the upstream ModelVersion enum
-        // (matched both as lowercased Swift case names and as raw string values).
-        // Each entry routes to the LatentModelFamily whose coefficients upstream uses for it.
-        switch lowercased {
-        case "qwenimage", "qwen_image":
-            return .qwen
-        case "qwenimage2_1", "qwen_image_2.1":
-            return .qwen21
-        case "cosmos2_5_2b", "cosmos2.5_2b":
-            // Cosmos 2.5 shares the Wan 2.1 / Qwen 16-channel coefficients upstream.
-            return .qwen
-        case "zimage", "z_image":
-            return .zImage
-        case "flux2", "flux2_9b", "flux2_4b":
-            return .flux2
-        case "ernieimage", "ernie_image":
-            // Ernie Image uses the 32-channel Flux 2 coefficients upstream.
-            return .flux2
-        case "ideogram4", "ideogram_4":
-            // Ideogram 4 uses the 32-channel Flux 2 coefficients upstream.
-            return .flux2
-        case "krea2", "krea_2":
-            // Krea 2 uses the 16-channel Qwen/Wan 2.1 coefficients upstream.
-            return .qwen
-        case "ltx2":
-            return .ltx2
-        case "ltx2_3", "ltx2.3":
-            return .ltx23
-        case "flux1", "hidreami1", "hidream_i1":
-            return .flux
-        case "seedvr2_3b", "seedvr2_7b":
-            // SeedVR2 uses the 16-channel Flux coefficients upstream.
-            return .flux
-        case "hidreamo1", "hidream_o1":
-            return .hiDreamO1
-        case "wan21_1_3b", "wan21_14b", "wan_v2.1_1.3b", "wan_v2.1_14b":
-            return .wan21
-        case "wan22_5b", "wan_v2.2_5b":
-            return .wan22
-        case "minimaxh3", "minimax_h3":
-            return .minimaxH3
-        case "longcatvideoavatar1_5", "longcat_video_avatar_v1.5":
-            // LongCat-Video Avatar shares the Wan 2.1 16-channel coefficients upstream.
-            return .longcatVideoAvatar
-        case "hunyuanvideo", "hunyuan_video":
-            return .hunyuanVideo
-        case "sd3", "sd3large", "sd3_large":
-            return .sd3
-        case "sdxlbase", "sdxlrefiner", "ssd1b", "sdxl_base_v0.9", "sdxl_refiner_v0.9", "ssd_1b":
-            return .sdxl
-        case "pixart", "auraflow":
-            // Pixart / AuraFlow use the 4-channel SDXL coefficients upstream.
-            return .sdxl
-        case "kandinsky21", "kandinsky2.1":
-            return .kandinsky
-        case "wurstchenstagec", "wurstchenstageb", "wurstchen_v3.0_stage_c", "wurstchen_v3.0_stage_b":
-            return .wurstchen
-        case "svdi2v", "svd_i2v", "v1", "v2":
-            // v1 / v2 / SVD share the distinct 4-channel coefficients upstream.
-            return .sd1
-        default:
-            break
-        }
-
-        // Fall back to substring matching for filenames
-        if lowercased.contains("flux2") {
-            return .flux2
-        }
-        // HiDream-O1 must be checked before the generic hidream -> .flux rule.
-        if lowercased.contains("hidreamo1") || lowercased.contains("hidream_o1") || lowercased.contains("hidream-o1") || (lowercased.contains("hidream") && lowercased.contains("o1")) {
-            return .hiDreamO1
-        }
-        if lowercased.contains("ltx2.3") || lowercased.contains("ltx-2.3") || lowercased.contains("ltx_2.3") || lowercased.contains("ltx_2_3") || lowercased.contains("ltx23") {
-            return .ltx23
-        }
-        if lowercased.contains("ltx2") || lowercased.contains("ltx-2") || lowercased.contains("ltx_2") {
-            return .ltx2
-        }
-        if lowercased.contains("ideogram") {
-            return .flux2
-        }
-        if lowercased.contains("ernie") {
-            return .flux2
-        }
-        if lowercased.contains("krea") {
-            return .qwen
-        }
-        if lowercased.contains("seedvr") {
-            return .flux
-        }
-        if lowercased.contains("flux") || lowercased.contains("hidream") {
-            return .flux
-        }
-        if lowercased.contains("zimage") || lowercased.contains("z_image") || lowercased.contains("z-image") {
-            return .zImage
-        }
-        if lowercased.contains("qwen") {
-            // Qwen Image 2.1 has its own 64-channel latent; don't match 2512 / 2511 / Qwen 2.5 VL.
-            if lowercased.contains("2.1") || lowercased.contains("2_1") || lowercased.contains("2-1")
-                || lowercased.contains("image21") || lowercased.contains("image_21") {
-                return .qwen21
-            }
-            return .qwen
-        }
-        if lowercased.contains("cosmos") {
-            return .qwen
-        }
-        if lowercased.contains("minimax") {
-            return .minimaxH3
-        }
-        if lowercased.contains("longcat") {
-            return .longcatVideoAvatar
-        }
-        if lowercased.contains("wan") {
-            // Distinguish Wan 2.2 (5B) from Wan 2.1
-            if lowercased.contains("wan22") || lowercased.contains("wan_2.2") || lowercased.contains("wan-2.2") || lowercased.contains("5b") {
-                return .wan22
-            }
-            return .wan21
-        }
-        if lowercased.contains("hunyuan") && lowercased.contains("video") {
-            return .hunyuanVideo
-        }
-        if lowercased.contains("kandinsky") {
-            return .kandinsky
-        }
-        if lowercased.contains("wurstchen") || lowercased.contains("cascade") {
-            return .wurstchen
-        }
-        if lowercased.contains("sd3") || lowercased.contains("sd_3") || lowercased.contains("stable-diffusion-3") {
-            return .sd3
-        }
-        if lowercased.contains("sdxl") || lowercased.contains("sd_xl") || lowercased.contains("xl_base") || lowercased.contains("xl_refiner") || lowercased.contains("pixart") || lowercased.contains("auraflow") {
-            return .sdxl
-        }
-        // SVD shares the v1/v2 4-channel coefficients; check before the generic sd_ rule.
-        if lowercased.contains("svd") {
-            return .sd1
-        }
-        if lowercased.contains("sd_") || lowercased.contains("v1-") || lowercased.contains("v2-") {
-            return .sd1
-        }
-
-        // Default to unknown for unrecognized models
-        return .unknown
-    }
-
-    /// The number of latent channels for this model family.
-    ///
-    /// For `.hiDreamO1` this is the patch-packed channel count (3 × 32 × 32 = 3072),
-    /// not a conventional latent channel count — its preview uses a patch-based decode.
-    public var latentChannels: Int {
-        switch self {
-        case .sd1, .sdxl, .kandinsky, .wurstchen:
-            return 4
-        case .sd3, .flux, .hunyuanVideo, .qwen, .zImage, .wan21, .ltx2, .ltx23, .longcatVideoAvatar:
-            return 16
-        case .minimaxH3:
-            return 24
-        case .flux2:
-            return 32
-        case .wan22:
-            return 48
-        case .qwen21:
-            return 64
-        case .hiDreamO1:
-            return 3 * 32 * 32
-        case .unknown:
-            return 16  // Default assumption for unknown
-        }
-    }
-
-    /// The native frame rate for video model families, or `nil` for image-only models.
-    public var nativeFrameRate: Int? {
-        switch self {
-        case .wan21, .wan22:
-            return 16
-        case .hunyuanVideo, .minimaxH3:
-            return 24
-        case .ltx2, .ltx23, .longcatVideoAvatar:
-            return 25
-        default:
-            return nil
-        }
-    }
-}
-
 // MARK: - Platform Image Extensions
 
 extension PlatformImage {
@@ -273,6 +32,15 @@ extension PlatformImage {
         return NSImage(data: data)
         #else
         return UIImage(data: data)
+        #endif
+    }
+
+    /// Wraps a `CGImage` at 1 point per pixel.
+    public static func fromCGImage(_ cgImage: CGImage) -> PlatformImage {
+        #if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        #else
+        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
         #endif
     }
 
@@ -614,7 +382,15 @@ public struct ImageHelpers {
     ///   - tensorData: The DTTensor data from Draw Things
     ///   - modelFamily: Optional model family for correct latent-to-RGB conversion (defaults to .flux for 16-channel)
     /// - Returns: A platform image
-    public static func dtTensorToImage(_ tensorData: Data, modelFamily: LatentModelFamily? = nil) throws -> PlatformImage {
+    public static func dtTensorToImage(_ tensorData: Data, modelFamily: ModelFamily? = nil) throws -> PlatformImage {
+        PlatformImage.fromCGImage(try dtTensorToCGImage(tensorData, modelFamily: modelFamily))
+    }
+
+    /// Convert DTTensor data (a decoded image or a preview latent) to a `CGImage`.
+    ///
+    /// This is the executor-neutral primitive behind ``dtTensorToImage(_:modelFamily:)``;
+    /// `CGImage` is `Sendable`, so it is safe to call off the main actor.
+    public static func dtTensorToCGImage(_ tensorData: Data, modelFamily: ModelFamily? = nil) throws -> CGImage {
         guard tensorData.count >= 68 else {
             throw ImageError.invalidData
         }
@@ -638,9 +414,13 @@ public struct ImageHelpers {
         let dim0 = Int(header[5])
         let isNHWC = (format == 0x02)
 
+        // Audio latent rows are packed below the video latent in preview latents only; decoded
+        // RGB (3-channel) and RGBA (4-channel) frames have no audio rows and must not be cropped.
+        let isLatent = channels > 4
+
         // For LTX-2 preview latents, strip audio latent rows from the bottom
         let family = modelFamily ?? .unknown
-        if (family == .ltx2 || family == .ltx23) && dim0 > 0 && width > 0 {
+        if (family == .ltx2 || family == .ltx23) && isLatent && dim0 > 0 && width > 0 {
             let (_, audioHeight) = ltx2ExtractAudioFramesAndHeight(
                 dim0: dim0, height: height, width: width
             )
@@ -650,9 +430,9 @@ public struct ImageHelpers {
             }
         }
 
-        // MiniMax H3 packs audio latent rows below the 24-channel video latent in the same way.
-        // Key on the channel count as well so a 24-channel tensor is handled even without a family hint.
-        if (family == .minimaxH3 || channels == 24) && dim0 > 0 && width > 0 {
+        // MiniMax H3 packs audio latent rows below its 24-channel video latent in the same way.
+        // Key on the channel count so a 24-channel latent is handled even without a family hint.
+        if channels == 24 && dim0 > 0 && width > 0 {
             let audioHeight = minimaxH3AudioHeight(videoLatentFrames: dim0, latentWidth: width)
             if audioHeight > 0 && audioHeight < height {
                 DTLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from MiniMax H3 preview (height \(height) -> \(height - audioHeight))", category: .images)
@@ -665,7 +445,7 @@ public struct ImageHelpers {
         // standard channel guard, keyed on the family or the distinctive channel count.
         if family == .hiDreamO1 || channels == 3 * 32 * 32 {
             DTLogger.debug("dtTensorToImage: using HiDream-O1 patch-based conversion", category: .images)
-            return try hiDreamO1PatchToImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
+            return try hiDreamO1PatchToCGImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
         }
 
         // Models with a transparent (RGBA) decoder, such as Qwen Image 2.1, return final images as
@@ -673,7 +453,7 @@ public struct ImageHelpers {
         // can only be decoded pixels, so it must not go through the 4-channel latent conversion.
         if channels == 4 && family != .unknown && family.latentChannels != 4 {
             DTLogger.debug("dtTensorToImage: using 4-channel ARGB conversion (family=\(family))", category: .images)
-            return try argbTensorToImage(tensorData, width: width, height: height, isNHWC: isNHWC)
+            return try argbTensorToCGImage(tensorData, width: width, height: height, isNHWC: isNHWC)
         }
 
         guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 || channels == 64 else {
@@ -772,8 +552,7 @@ public struct ImageHelpers {
             }
         }
 
-        // Create platform image from RGB data
-        return try createImageFromRGBData(rgbData, width: width, height: height)
+        return try makeRGBCGImage(rgbData, width: width, height: height)
     }
 
     // MARK: - LTX-2 Audio Latent Stripping
@@ -1009,7 +788,7 @@ public struct ImageHelpers {
     /// HiDream-O1 packs each 32×32 output patch into the channel dimension
     /// (channels = 3 × 32 × 32 = 3072), so the decoded image is 32× larger per side.
     /// Ports the upstream patch-unpacking preview path.
-    private static func hiDreamO1PatchToImage(_ tensorData: Data, imageWidth: Int, imageHeight: Int, channels: Int) throws -> PlatformImage {
+    private static func hiDreamO1PatchToCGImage(_ tensorData: Data, imageWidth: Int, imageHeight: Int, channels: Int) throws -> CGImage {
         let patchSize = 32
         guard channels == 3 * patchSize * patchSize else {
             DTLogger.error("hiDreamO1PatchToImage: unexpected channel count \(channels), expected \(3 * patchSize * patchSize)", category: .images)
@@ -1057,7 +836,7 @@ public struct ImageHelpers {
         }
 
         DTLogger.debug("hiDreamO1PatchToImage: decoded \(imageWidth)x\(imageHeight) patches -> \(outputWidth)x\(outputHeight) image", category: .images)
-        return try createImageFromRGBData(rgbData, width: outputWidth, height: outputHeight)
+        return try makeRGBCGImage(rgbData, width: outputWidth, height: outputHeight)
     }
 
     /// Convert 3-channel RGB from [-1, 1] to [0, 255] (NHWC / interleaved layout)
@@ -1558,26 +1337,16 @@ public struct ImageHelpers {
         }
     }
 
-    /// Create a platform image from raw RGB data
-    private static func createImageFromRGBData(_ rgbData: Data, width: Int, height: Int) throws -> PlatformImage {
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
-            throw ImageError.conversionFailed
-        }
-
-        #if os(macOS)
-        // macOS: Create CGImage directly from RGB data
-        let bitsPerComponent = 8
-        let bitsPerPixel = 24
-        let bytesPerRow = width * 3
-        let cfData = rgbData as CFData
-
-        guard let provider = CGDataProvider(data: cfData),
+    /// Wraps packed 8-bit RGB pixels in a `CGImage`.
+    private static func makeRGBCGImage(_ rgbData: Data, width: Int, height: Int) throws -> CGImage {
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let provider = CGDataProvider(data: rgbData as CFData),
               let cgImage = CGImage(
                 width: width,
                 height: height,
-                bitsPerComponent: bitsPerComponent,
-                bitsPerPixel: bitsPerPixel,
-                bytesPerRow: bytesPerRow,
+                bitsPerComponent: 8,
+                bitsPerPixel: 24,
+                bytesPerRow: width * 3,
                 space: colorSpace,
                 bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
                 provider: provider,
@@ -1587,49 +1356,14 @@ public struct ImageHelpers {
               ) else {
             throw ImageError.conversionFailed
         }
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-        #else
-        // iOS: Convert RGB to RGBA since iOS handles RGBA better
-        // Add alpha channel (fully opaque) to the RGB data
-        var rgbaData = Data(capacity: width * height * 4)
-        for i in 0..<(width * height) {
-            let rgbOffset = i * 3
-            rgbaData.append(rgbData[rgbOffset])     // R
-            rgbaData.append(rgbData[rgbOffset + 1]) // G
-            rgbaData.append(rgbData[rgbOffset + 2]) // B
-            rgbaData.append(255)                     // A (fully opaque)
-        }
-
-        let bitsPerComponent = 8
-        let bitsPerPixel = 32
-        let bytesPerRow = width * 4
-        let cfData = rgbaData as CFData
-
-        guard let provider = CGDataProvider(data: cfData),
-              let cgImage = CGImage(
-                width: width,
-                height: height,
-                bitsPerComponent: bitsPerComponent,
-                bitsPerPixel: bitsPerPixel,
-                bytesPerRow: bytesPerRow,
-                space: colorSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: true,
-                intent: .defaultIntent
-              ) else {
-            throw ImageError.conversionFailed
-        }
-        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
-        #endif
+        return cgImage
     }
 
     /// Convert a 4-channel ARGB pixel tensor (as produced by Draw Things' transparent decoders) to an RGBA image.
     ///
     /// Channel 0 is alpha in [0, 1]; channels 1...3 are RGB in [-1, 1]. Mirrors upstream
     /// `ImageConverter.imageAndMask(from:)` / the transparent `FirstStage` decode.
-    private static func argbTensorToImage(_ tensorData: Data, width: Int, height: Int, isNHWC: Bool) throws -> PlatformImage {
+    private static func argbTensorToCGImage(_ tensorData: Data, width: Int, height: Int, isNHWC: Bool) throws -> CGImage {
         let pixelDataOffset = 68
         let pixelCount = width * height
         guard pixelCount > 0, tensorData.count >= pixelDataOffset + pixelCount * 4 * 2 else {
@@ -1674,11 +1408,7 @@ public struct ImageHelpers {
               ) else {
             throw ImageError.conversionFailed
         }
-        #if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-        #else
-        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
-        #endif
+        return cgImage
     }
 
     // MARK: - Transparency Helpers
@@ -1763,7 +1493,12 @@ public struct ImageHelpers {
         guard let cgImage = image.cgImageRepresentation else {
             throw ImageError.invalidImage
         }
+        return try createMaskFromAlpha(cgImage)
+    }
 
+    /// Creates an inpainting mask from an image's alpha channel: transparent pixels are
+    /// regenerated, opaque pixels are kept.
+    public static func createMaskFromAlpha(_ cgImage: CGImage) throws -> Data {
         let width = cgImage.width
         let height = cgImage.height
         let bytesPerRow = width * 4

@@ -20,6 +20,8 @@ public struct ModelSpec: Sendable, Hashable {
     public let version: String?
     /// The spec as a JSON object.
     public let json: Data
+    /// Files of additional models this model runs with (for example Stable Cascade stage B).
+    public let stageModels: [String]
 
     /// Creates a spec from a JSON object. Returns nil if the object has no `file` key.
     public init?(json: Data) {
@@ -33,6 +35,7 @@ public struct ModelSpec: Sendable, Hashable {
         else { return nil }
         self.file = file
         self.version = object["version"] as? String
+        self.stageModels = object["stage_models"] as? [String] ?? []
         self.json = json
     }
 
@@ -127,17 +130,38 @@ public actor ModelSpecStore {
         registered[file] ?? remote[file] ?? Self.bundled[file]
     }
 
-    /// Builds the override for a request: the model's spec plus a spec for each LoRA, merged
-    /// into `base` (normally the server's echo override, which carries control nets, textual
-    /// inversions and upscalers). Returns `base` unchanged when the model is unknown.
+    /// Builds the override for a request, mirroring the Draw Things app's
+    /// `ImageGeneratorUtils.metadataOverride`: specs for the model, its stage models and the
+    /// refiner, plus a spec for each LoRA, merged into `base` (normally the server's echo
+    /// override, which carries control nets, textual inversions and upscalers). Returns `base`
+    /// unchanged when the model is unknown.
     ///
     /// LoRAs without a known spec get a minimal synthetic one using the model's version,
     /// because the server silently skips any LoRA missing from its override mapping.
-    func override(forModel modelFile: String, loraFiles: [String], base: MetadataOverride?) async -> MetadataOverride? {
+    func override(
+        forModel modelFile: String,
+        refinerModel: String? = nil,
+        loraFiles: [String],
+        base: MetadataOverride?
+    ) async -> MetadataOverride? {
         guard let modelSpec = await spec(for: modelFile) else {
             DTLogger.debug("No spec found for \(modelFile), using server metadata", category: .models)
             return base
         }
+        var modelSpecs = [modelSpec]
+        if let refinerModel, !refinerModel.isEmpty, let refinerSpec = await spec(for: refinerModel) {
+            modelSpecs.append(refinerSpec)
+        }
+        // Each model is followed by its stage models, as upstream does.
+        var ordered = [ModelSpec]()
+        for spec in modelSpecs where !ordered.contains(where: { $0.file == spec.file }) {
+            ordered.append(spec)
+            for stageModel in spec.stageModels where !ordered.contains(where: { $0.file == stageModel }) {
+                if let stageSpec = await self.spec(for: stageModel) { ordered.append(stageSpec) }
+            }
+        }
+        modelSpecs = ordered
+
         let version = modelSpec.version ?? "v1"
         var loraSpecs = [ModelSpec]()
         for lora in loraFiles {
@@ -148,9 +172,9 @@ public actor ModelSpecStore {
             }
         }
         var merged = base ?? MetadataOverride()
-        merged.models = ModelSpec.encodeArray([modelSpec])
+        merged.models = ModelSpec.encodeArray(modelSpecs)
         merged.loras = loraSpecs.isEmpty ? Data() : ModelSpec.encodeArray(loraSpecs)
-        DTLogger.debug("Using spec for \(modelFile) (version \(version)), loras: \(loraFiles)", category: .models)
+        DTLogger.debug("Using specs for \(modelSpecs.map(\.file)) (version \(version)), loras: \(loraFiles)", category: .models)
         return merged
     }
 

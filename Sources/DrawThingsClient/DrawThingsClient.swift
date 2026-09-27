@@ -10,29 +10,27 @@
 //
 
 import AVFoundation
-import Foundation
 import Combine
-import Synchronization
+import Foundation
 
-#if os(macOS)
-import AppKit
-#else
-import UIKit
-#endif
-
+/// Images and audio from ``DrawThingsClient/generateImageAndAudio(prompt:negativePrompt:configuration:image:mask:hints:override:)``.
 public struct GenerationOutput {
     public let images: [PlatformImage]
     public let audio: [AVAudioPCMBuffer]
 }
 
+/// A main-actor wrapper around ``DrawThingsService`` for SwiftUI.
 @MainActor
 public class DrawThingsClient: ObservableObject {
-    private let service: DrawThingsService
-    
+    public let service: DrawThingsService
+
     @Published public var isConnected = false
-    @Published public var currentProgress: ImageGenerationProgress?
+    /// Progress of the current generation, or nil when idle.
+    @Published public var currentProgress: GenerationProgress?
+    /// The latest preview of the current generation.
+    @Published public var currentPreview: PlatformImage?
     @Published public var lastError: Error?
-    
+
     public init(address: String, options: ConnectionOptions = .default) throws {
         self.service = try DrawThingsService(address: address, options: options)
     }
@@ -47,7 +45,7 @@ public class DrawThingsClient: ObservableObject {
             lastError = error
         }
     }
-    
+
     public func generateImage(
         prompt: String,
         negativePrompt: String = "",
@@ -57,17 +55,8 @@ public class DrawThingsClient: ObservableObject {
         hints: [HintProto] = [],
         override: MetadataOverride? = nil
     ) async throws -> [PlatformImage] {
-        let resultData = try await callService(
-            prompt: prompt,
-            negativePrompt: negativePrompt,
-            configuration: configuration,
-            image: image,
-            mask: mask,
-            hints: hints,
-            override: override
-        )
-        let modelFamily = LatentModelFamily.detect(from: configuration.model)
-        return try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
+        try await generate(prompt: prompt, negativePrompt: negativePrompt, configuration: configuration,
+                           image: image, mask: mask, hints: hints, override: override).platformImages
     }
 
     public func generateImageAndAudio(
@@ -79,141 +68,52 @@ public class DrawThingsClient: ObservableObject {
         hints: [HintProto] = [],
         override: MetadataOverride? = nil
     ) async throws -> GenerationOutput {
-        let audioTensors = Mutex<[Data]>([])
-
-        let resultData = try await callService(
-            prompt: prompt,
-            negativePrompt: negativePrompt,
-            configuration: configuration,
-            image: image,
-            mask: mask,
-            hints: hints,
-            override: override,
-            audioHandler: { audioData in
-                audioTensors.withLock { $0.append(audioData) }
-            }
-        )
-        let audioBuffers = audioTensors.withLock { $0 }.compactMap { try? AudioHelpers.ccvTensorToAudioBuffer($0) }
-
-        let modelFamily = LatentModelFamily.detect(from: configuration.model)
-        let images = try resultData.map { try ImageHelpers.dtTensorToImage($0, modelFamily: modelFamily) }
-        return GenerationOutput(images: images, audio: audioBuffers)
+        let result = try await generate(prompt: prompt, negativePrompt: negativePrompt, configuration: configuration,
+                                        image: image, mask: mask, hints: hints, override: override)
+        return GenerationOutput(images: result.platformImages, audio: try result.audio.map { try $0.pcmBuffer() })
     }
 
-    private func callService(
+    private func generate(
         prompt: String,
         negativePrompt: String,
         configuration: DrawThingsConfiguration,
         image: PlatformImage?,
         mask: PlatformImage?,
-        hints: [HintProto] = [],
-        override: MetadataOverride? = nil,
-        audioHandler: @escaping @Sendable (Data) async -> Void = { _ in }
-    ) async throws -> [Data] {
-        currentProgress = ImageGenerationProgress()
-        defer { currentProgress = nil }
-
-        let configData = try configuration.toFlatBufferData()
-
-        var imageData: Data?
-        var maskData: Data?
-
-        if let image = image {
-            imageData = try ImageHelpers.imageToDTTensor(image, forceRGB: true)
-        }
-
-        if let mask = mask {
-            // Draw Things' mask format is a 1-byte-per-pixel alpha-derived mask
-            // (68-byte header + 0/2 values), not an RGB image tensor. Encoding
-            // the mask with imageToDTTensor produces the wrong tensor shape and
-            // crashes the DT server in isInpainting() with an out-of-bounds
-            // read. createMaskFromAlpha emits the format DT expects.
-            maskData = try ImageHelpers.createMaskFromAlpha(mask)
-        }
-
-        let result = try await service.generateImage(
+        hints: [HintProto],
+        override: MetadataOverride?
+    ) async throws -> GenerationResult {
+        let request = GenerationRequest(
             prompt: prompt,
             negativePrompt: negativePrompt,
-            configuration: configData,
-            image: imageData,
-            mask: maskData,
+            configuration: configuration,
+            image: try image.map(Self.cgImage),
+            mask: try mask.map(Self.cgImage),
             hints: hints,
-            override: override,
-            progressHandler: { [weak self] signpost in
-                await MainActor.run {
-                    self?.updateProgress(signpost)
-                }
-            },
-            audioHandler: audioHandler
+            override: override
         )
-        return result
-    }
-    
-    private func updateProgress(_ signpost: ImageGenerationSignpostProto?) {
-        guard let signpost = signpost else { return }
-        
-        switch signpost.signpost {
-        case .textEncoded:
-            currentProgress?.stage = .textEncoding
-        case .imageEncoded:
-            currentProgress?.stage = .imageEncoding
-        case .sampling(let sampling):
-            currentProgress?.stage = .sampling(step: Int(sampling.step))
-        case .imageDecoded:
-            currentProgress?.stage = .imageDecoding
-        case .secondPassImageEncoded:
-            currentProgress?.stage = .secondPassImageEncoding
-        case .secondPassSampling(let sampling):
-            currentProgress?.stage = .secondPassSampling(step: Int(sampling.step))
-        case .secondPassImageDecoded:
-            currentProgress?.stage = .secondPassImageDecoding
-        case .faceRestored:
-            currentProgress?.stage = .faceRestoration
-        case .imageUpscaled:
-            currentProgress?.stage = .imageUpscaling
-        default:
-            break
+        currentProgress = GenerationProgress(stage: .textEncoding, totalSteps: Int(configuration.steps))
+        currentPreview = nil
+        defer {
+            currentProgress = nil
+            currentPreview = nil
         }
-    }
-}
-
-public class ImageGenerationProgress: ObservableObject {
-    @Published public var stage: GenerationStage = .textEncoding
-    
-    public init() {}
-}
-
-public enum GenerationStage {
-    case textEncoding
-    case imageEncoding
-    case sampling(step: Int)
-    case imageDecoding
-    case secondPassImageEncoding
-    case secondPassSampling(step: Int)
-    case secondPassImageDecoding
-    case faceRestoration
-    case imageUpscaling
-    
-    public var description: String {
-        switch self {
-        case .textEncoding:
-            return "Encoding text prompt..."
-        case .imageEncoding:
-            return "Encoding input image..."
-        case .sampling(let step):
-            return "Generating image (step \(step))..."
-        case .imageDecoding:
-            return "Decoding generated image..."
-        case .secondPassImageEncoding:
-            return "Preparing second pass..."
-        case .secondPassSampling(let step):
-            return "Second pass generation (step \(step))..."
-        case .secondPassImageDecoding:
-            return "Processing second pass..."
-        case .faceRestoration:
-            return "Restoring faces..."
-        case .imageUpscaling:
-            return "Upscaling image..."
+        for try await event in service.stream(request) {
+            switch event {
+            case .progress(let progress):
+                currentProgress = progress
+            case .preview(let preview):
+                currentPreview = PlatformImage.fromCGImage(preview)
+            case .completed(let result):
+                return result
+            default:
+                break
+            }
         }
+        throw CancellationError()
+    }
+
+    private static func cgImage(_ image: PlatformImage) throws -> CGImage {
+        guard let cgImage = image.cgImageRepresentation else { throw ImageError.invalidImage }
+        return cgImage
     }
 }

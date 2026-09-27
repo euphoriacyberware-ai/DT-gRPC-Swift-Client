@@ -190,6 +190,18 @@ struct ModelSpecStoreTests {
         #expect(override.controlNets == base.controlNets, "server metadata for other kinds is kept")
     }
 
+    @Test func overrideIncludesStageAndRefinerModels() async throws {
+        let store = ModelSpecStore(source: .bundled) { _ in Data() }
+        await store.register([
+            try #require(ModelSpec(json: Data(#"{"file":"c.ckpt","version":"wurstchenStageC","stage_models":["b.ckpt"]}"#.utf8))),
+            try #require(ModelSpec(json: Data(#"{"file":"b.ckpt","version":"wurstchenStageB"}"#.utf8))),
+            try #require(ModelSpec(json: Data(#"{"file":"r.ckpt","version":"sdxlRefiner"}"#.utf8))),
+        ])
+        let override = try #require(await store.override(forModel: "c.ckpt", refinerModel: "r.ckpt", loraFiles: [], base: nil))
+        let models = try JSONSerialization.jsonObject(with: override.models) as? [[String: Any]]
+        #expect(models?.compactMap { $0["file"] as? String } == ["c.ckpt", "b.ckpt", "r.ckpt"])
+    }
+
     @Test func unknownModelKeepsServerMetadata() async {
         let store = ModelSpecStore(source: .bundled) { _ in Data() }
         let base = MetadataOverride.with { $0.models = Data("[]".utf8) }
@@ -200,16 +212,17 @@ struct ModelSpecStoreTests {
 @Suite("DrawThingsService helpers")
 struct ServiceHelperTests {
     @Test func readsModelAndLoRAFilesFromConfiguration() throws {
-        var configuration = DrawThingsConfiguration(model: "flux_2_klein_4b_q8p.ckpt")
+        var configuration = DrawThingsConfiguration(model: "flux_2_klein_4b_q8p.ckpt", refinerModel: "refiner.ckpt")
         configuration.loras = [LoRAConfig(file: "a.ckpt"), LoRAConfig(file: "b.ckpt")]
-        let files = try DrawThingsService.modelAndLoRAFiles(in: configuration.toFlatBufferData())
+        let files = try DrawThingsService.modelFiles(in: configuration.toFlatBufferData())
         #expect(files.model == "flux_2_klein_4b_q8p.ckpt")
+        #expect(files.refiner == "refiner.ckpt")
         #expect(files.loras == ["a.ckpt", "b.ckpt"])
     }
 
     @Test func rejectsInvalidConfigurationBytes() {
         #expect(throws: DrawThingsError.self) {
-            try DrawThingsService.modelAndLoRAFiles(in: Data([0xFF, 0xFF, 0xFF, 0xFF, 1, 2]))
+            try DrawThingsService.modelFiles(in: Data([0xFF, 0xFF, 0xFF, 0xFF, 1, 2]))
         }
     }
 }
