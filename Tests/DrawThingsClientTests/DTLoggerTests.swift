@@ -1,51 +1,52 @@
-import XCTest
+import CoreGraphics
+import Foundation
+import Testing
 @testable import DrawThingsClient
 
-final class DTLoggerTests: XCTestCase {
+/// DTLogger settings are global, so these tests run one at a time and restore them afterwards.
+@Suite("DTLogger", .serialized)
+final class DTLoggerTests {
+    private let savedLevel: DTLogLevel
+    private let savedEnabled: Bool
 
-    private var savedLevel: DTLogLevel = .none
-    private var savedEnabled = true
-
-    override func setUp() {
-        super.setUp()
+    init() {
         savedLevel = DTLogger.minimumLevel
         savedEnabled = DTLogger.shared.isEnabled
     }
 
-    override func tearDown() {
+    deinit {
         DTLogger.minimumLevel = savedLevel
         DTLogger.shared.isEnabled = savedEnabled
-        super.tearDown()
     }
 
-    func testLoggingIsOffByDefault() {
-        XCTAssertEqual(DTLogger.minimumLevel, .none)
-        XCTAssertFalse(DTLogger.isLogging(.fault))
+    @Test func loggingIsOffByDefault() {
+        #expect(DTLogger.minimumLevel == .none)
+        #expect(!(DTLogger.isLogging(.fault)))
     }
 
-    func testMinimumLevelFiltersLowerLevels() {
+    @Test func minimumLevelFiltersLowerLevels() {
         DTLogger.minimumLevel = .warning
-        XCTAssertFalse(DTLogger.isLogging(.debug))
-        XCTAssertFalse(DTLogger.isLogging(.info))
-        XCTAssertTrue(DTLogger.isLogging(.warning))
-        XCTAssertTrue(DTLogger.isLogging(.error))
-        XCTAssertFalse(DTLogger.isLogging(.none))
+        #expect(!(DTLogger.isLogging(.debug)))
+        #expect(!(DTLogger.isLogging(.info)))
+        #expect(DTLogger.isLogging(.warning))
+        #expect(DTLogger.isLogging(.error))
+        #expect(!(DTLogger.isLogging(.none)))
     }
 
-    func testIsEnabledOverridesLevel() {
+    @Test func isEnabledOverridesLevel() {
         DTLogger.minimumLevel = .debug
         DTLogger.shared.isEnabled = false
-        XCTAssertFalse(DTLogger.isLogging(.fault))
+        #expect(!(DTLogger.isLogging(.fault)))
     }
 
-    func testMessageIsNotEvaluatedWhenFiltered() {
+    @Test func messageIsNotEvaluatedWhenFiltered() {
         DTLogger.minimumLevel = .error
         var evaluated = false
         DTLogger.debug({ evaluated = true; return "skipped" }())
-        XCTAssertFalse(evaluated)
+        #expect(!(evaluated))
     }
 
-    func testConcurrentUse() async {
+    @Test func concurrentUse() async {
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<200 {
                 group.addTask {
@@ -57,8 +58,8 @@ final class DTLoggerTests: XCTestCase {
     }
 
     @available(*, deprecated)
-    func testDeprecatedClientLoggerForwards() {
+    @Test func deprecatedClientLoggerForwards() {
         DrawThingsClientLogger.minimumLevel = .notice
-        XCTAssertEqual(DTLogger.minimumLevel, .warning)
+        #expect(DTLogger.minimumLevel == .warning)
     }
 }

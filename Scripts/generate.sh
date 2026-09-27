@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Regenerates the protobuf, gRPC and FlatBuffers sources in
-# Sources/DrawThingsClient/Generated from the schemas in Protos/.
+# Sources/DrawThingsClient/Generated from the schemas in Protos/, plus the gRPC server stubs
+# the tests' in-process server uses (Tests/DrawThingsClientTests/Generated).
 #
 # The protoc plugins are built from this package's resolved dependencies, so the
 # generated code always matches the swift-protobuf / grpc-swift-protobuf runtime
@@ -51,6 +52,17 @@ protoc \
   --grpc-swift-2_out="$OUT" \
   "$PROTOS/imageService.proto"
 
+echo "Generating gRPC server stubs for the test server..."
+TEST_OUT="$ROOT/Tests/DrawThingsClientTests/Generated"
+mkdir -p "$TEST_OUT"
+rm -f "$TEST_OUT"/imageService.grpc.swift
+protoc \
+  --proto_path="$PROTOS" \
+  --plugin=protoc-gen-grpc-swift-2="$BIN/protoc-gen-grpc-swift-2" \
+  --grpc-swift-2_opt=Visibility=Internal,Server=true,Client=false,ExtraModuleImports=DrawThingsClient \
+  --grpc-swift-2_out="$TEST_OUT" \
+  "$PROTOS/imageService.proto"
+
 echo "Generating FlatBuffers configuration..."
 # config.fbs is a Dflat schema: it uses the `primary` and `indexed` attributes,
 # which Dflat declares itself. Declare them for plain flatc on a temporary copy.
@@ -63,4 +75,4 @@ flatc --swift --gen-object-api -o "$OUT" "$TMP/config.fbs"
 sed -i '' -E 's/^(public enum [A-Za-z]+: Int8, Enum, Verifiable) \{/\1, Sendable {/' "$OUT/config_generated.swift"
 
 echo "Done. Generated files:"
-ls -1 "$OUT"
+ls -1 "$OUT" "$TEST_OUT"

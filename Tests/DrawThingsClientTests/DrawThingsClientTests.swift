@@ -1,11 +1,14 @@
-import XCTest
+import CoreGraphics
+import Foundation
+import Testing
 import FlatBuffers
 @testable import DrawThingsClient
 
-final class DrawThingsClientTests: XCTestCase {
+@Suite("Client")
+struct DrawThingsClientTests {
 
-    func testCGImageTensorEncoderMatchesPlatformImageWrapper() throws {
-        let context = try XCTUnwrap(CGContext(
+    @Test func cGImageTensorEncoderMatchesPlatformImageWrapper() throws {
+        let context = try #require(CGContext(
             data: nil,
             width: 3,
             height: 2,
@@ -16,27 +19,21 @@ final class DrawThingsClientTests: XCTestCase {
         ))
         context.setFillColor(CGColor(srgbRed: 0.25, green: 0.5, blue: 0.75, alpha: 0.5))
         context.fill(CGRect(x: 0, y: 0, width: 3, height: 2))
-        let cgImage = try XCTUnwrap(context.makeImage())
-#if os(macOS)
-        let platformImage = NSImage(cgImage: cgImage, size: NSSize(width: 3, height: 2))
-#else
-        let platformImage = UIImage(cgImage: cgImage)
-#endif
+        let cgImage = try #require(context.makeImage())
+        let platformImage = PlatformImage.fromCGImage(cgImage)
 
-        XCTAssertEqual(
-            try ImageHelpers.imageToDTTensor(cgImage, forceRGB: false),
-            try ImageHelpers.imageToDTTensor(platformImage, forceRGB: false)
-        )
-        XCTAssertEqual(
-            try ImageHelpers.imageToDTTensor(cgImage, forceRGB: true),
-            try ImageHelpers.imageToDTTensor(platformImage, forceRGB: true)
-        )
+        let cgRGBA = try ImageHelpers.imageToDTTensor(cgImage, forceRGB: false)
+        let platformRGBA = try ImageHelpers.imageToDTTensor(platformImage, forceRGB: false)
+        #expect(cgRGBA == platformRGBA)
+        let cgRGB = try ImageHelpers.imageToDTTensor(cgImage, forceRGB: true)
+        let platformRGB = try ImageHelpers.imageToDTTensor(platformImage, forceRGB: true)
+        #expect(cgRGB == platformRGB)
     }
 
     /// The seed mode must survive `toFlatBufferData()` unchanged — regression for a
     /// bug that collapsed scalealike(2) and nvidiagpucompatible(3) to
     /// torchcpucompatible, which changes the initial noise and breaks reproduction.
-    func testSeedModeSurvivesEncoding() throws {
+    @Test func seedModeSurvivesEncoding() throws {
         for expected in [SeedMode.legacy, .torchcpucompatible, .scalealike, .nvidiagpucompatible] {
             let mode = expected
             let config = DrawThingsConfiguration(
@@ -48,7 +45,7 @@ final class DrawThingsClientTests: XCTestCase {
             var buffer = ByteBuffer(data: data)
             let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
             let root = GenerationConfiguration(buffer, o: rootOffset)
-            XCTAssertEqual(root.seedMode, expected, "seedMode \(mode) should encode as \(expected)")
+            #expect(root.seedMode == expected, "seedMode \(mode) should encode as \(expected)")
         }
     }
 
@@ -57,7 +54,7 @@ final class DrawThingsClientTests: XCTestCase {
     /// `serializeDefaults: true` the encoder silently dropped them, the server
     /// read back its own default, and generation diverged from the app for an
     /// identical config + seed.
-    func testSchemaDefaultValuedFieldsSurviveEncoding() throws {
+    @Test func schemaDefaultValuedFieldsSurviveEncoding() throws {
         let config = DrawThingsConfiguration(
             width: 1024, height: 1024, steps: 8,
             model: "z_image_turbo_1.0_q8p.ckpt", guidanceScale: 1.0,
@@ -79,23 +76,23 @@ final class DrawThingsClientTests: XCTestCase {
         let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
         let root = GenerationConfiguration(buffer, o: rootOffset)
 
-        XCTAssertFalse(root.resolutionDependentShift)
-        XCTAssertFalse(root.t5TextEncoder)
-        XCTAssertFalse(root.speedUpWithGuidanceEmbed)
-        XCTAssertFalse(root.preserveOriginalAfterInpaint)
-        XCTAssertFalse(root.negativePromptForImagePrior)
-        XCTAssertEqual(root.imageGuidanceScale, 0.0)
-        XCTAssertEqual(root.clipWeight, 0.0)
-        XCTAssertEqual(root.guidanceEmbed, 0.0)
-        XCTAssertEqual(root.stochasticSamplingGamma, 0.0)
-        XCTAssertEqual(root.teaCacheEnd, 0)
-        XCTAssertEqual(root.causalInference, 0)
-        XCTAssertEqual(root.shift, 3.0)
+        #expect(!(root.resolutionDependentShift))
+        #expect(!(root.t5TextEncoder))
+        #expect(!(root.speedUpWithGuidanceEmbed))
+        #expect(!(root.preserveOriginalAfterInpaint))
+        #expect(!(root.negativePromptForImagePrior))
+        #expect(root.imageGuidanceScale == 0.0)
+        #expect(root.clipWeight == 0.0)
+        #expect(root.guidanceEmbed == 0.0)
+        #expect(root.stochasticSamplingGamma == 0.0)
+        #expect(root.teaCacheEnd == 0)
+        #expect(root.causalInference == 0)
+        #expect(root.shift == 3.0)
     }
 
     /// The app sends 0 for unset SDXL micro-conditioning sizes; we must not
     /// substitute the start size, or our request differs from the UI's.
-    func testUnsetConditioningSizesArePassedThroughAsZero() throws {
+    @Test func unsetConditioningSizesArePassedThroughAsZero() throws {
         let config = DrawThingsConfiguration(
             width: 1024, height: 1024, steps: 8,
             model: "z_image_turbo_1.0_q8p.ckpt", guidanceScale: 1.0
@@ -105,15 +102,15 @@ final class DrawThingsClientTests: XCTestCase {
         let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
         let root = GenerationConfiguration(buffer, o: rootOffset)
 
-        XCTAssertEqual(root.originalImageWidth, 0)
-        XCTAssertEqual(root.originalImageHeight, 0)
-        XCTAssertEqual(root.targetImageWidth, 0)
-        XCTAssertEqual(root.targetImageHeight, 0)
-        XCTAssertEqual(root.negativeOriginalImageWidth, 0)
-        XCTAssertEqual(root.negativeOriginalImageHeight, 0)
+        #expect(root.originalImageWidth == 0)
+        #expect(root.originalImageHeight == 0)
+        #expect(root.targetImageWidth == 0)
+        #expect(root.targetImageHeight == 0)
+        #expect(root.negativeOriginalImageWidth == 0)
+        #expect(root.negativeOriginalImageHeight == 0)
     }
 
-    func testConfigurationCreation() throws {
+    @Test func configurationCreation() throws {
         let config = DrawThingsConfiguration(
             width: 512,
             height: 512,
@@ -122,79 +119,79 @@ final class DrawThingsClientTests: XCTestCase {
             guidanceScale: 7.0
         )
         
-        XCTAssertEqual(config.width, 512)
-        XCTAssertEqual(config.height, 512)
-        XCTAssertEqual(config.steps, 20)
-        XCTAssertEqual(config.guidanceScale, 7.0)
+        #expect(config.width == 512)
+        #expect(config.height == 512)
+        #expect(config.steps == 20)
+        #expect(config.guidanceScale == 7.0)
     }
     
-    func testSamplerTypes() {
-        XCTAssertEqual(SamplerType.ddim.rawValue, 2)
-        XCTAssertEqual(SamplerType.eulera.rawValue, 1)
-        XCTAssertEqual(SamplerType.dpmpp2mkarras.rawValue, 0)
+    @Test func samplerTypes() {
+        #expect(SamplerType.ddim.rawValue == 2)
+        #expect(SamplerType.eulera.rawValue == 1)
+        #expect(SamplerType.dpmpp2mkarras.rawValue == 0)
     }
     
-    func testGenerationStageDescriptions() {
-        XCTAssertEqual(GenerationStage.textEncoding.description, "Encoding text prompt...")
-        XCTAssertEqual(GenerationStage.sampling(step: 5).description, "Generating image (step 5)...")
-        XCTAssertEqual(GenerationStage.imageDecoding.description, "Decoding generated image...")
+    @Test func generationStageDescriptions() {
+        #expect(GenerationStage.textEncoding.description == "Encoding text prompt...")
+        #expect(GenerationStage.sampling(step: 5).description == "Generating image (step 5)...")
+        #expect(GenerationStage.imageDecoding.description == "Decoding generated image...")
     }
 
-    func testModelFamilyDetection() {
+    @Test func modelFamilyDetection() {
         // SD 1.x/2.x/SVD must be distinguished from SDXL (different 4-channel coefficients).
-        XCTAssertEqual(ModelFamily.detect(from: "v1"), .sd1)
-        XCTAssertEqual(ModelFamily.detect(from: "v2"), .sd1)
-        XCTAssertEqual(ModelFamily.detect(from: "svd_xt_1.1.safetensors"), .sd1)
-        XCTAssertEqual(ModelFamily.detect(from: "sd_xl_base_1.0.safetensors"), .sdxl)
-        XCTAssertEqual(ModelFamily.detect(from: "sdxlBase"), .sdxl)
-        XCTAssertEqual(ModelFamily.detect(from: "pixart"), .sdxl)
+        #expect(ModelFamily.detect(from: "v1") == .sd1)
+        #expect(ModelFamily.detect(from: "v2") == .sd1)
+        #expect(ModelFamily.detect(from: "svd_xt_1.1.safetensors") == .sd1)
+        #expect(ModelFamily.detect(from: "sd_xl_base_1.0.safetensors") == .sdxl)
+        #expect(ModelFamily.detect(from: "sdxlBase") == .sdxl)
+        #expect(ModelFamily.detect(from: "pixart") == .sdxl)
 
         // HiDream-O1 (patch decode) must not be confused with HiDream-I1 (Flux coefficients).
-        XCTAssertEqual(ModelFamily.detect(from: "hidreamo1"), .hiDreamO1)
-        XCTAssertEqual(ModelFamily.detect(from: "hidream_o1"), .hiDreamO1)
-        XCTAssertEqual(ModelFamily.detect(from: "hidreami1"), .flux)
+        #expect(ModelFamily.detect(from: "hidreamo1") == .hiDreamO1)
+        #expect(ModelFamily.detect(from: "hidream_o1") == .hiDreamO1)
+        #expect(ModelFamily.detect(from: "hidreami1") == .flux)
 
         // New models reusing existing coefficient families.
-        XCTAssertEqual(ModelFamily.detect(from: "cosmos2_5_2b"), .qwen)
-        XCTAssertEqual(ModelFamily.detect(from: "ernieImage"), .flux2)
-        XCTAssertEqual(ModelFamily.detect(from: "seedvr2_3b"), .flux)
+        #expect(ModelFamily.detect(from: "cosmos2_5_2b") == .qwen)
+        #expect(ModelFamily.detect(from: "ernieImage") == .flux2)
+        #expect(ModelFamily.detect(from: "seedvr2_3b") == .flux)
 
         // Newly recognized older families.
-        XCTAssertEqual(ModelFamily.detect(from: "kandinsky21"), .kandinsky)
-        XCTAssertEqual(ModelFamily.detect(from: "wurstchenStageC"), .wurstchen)
+        #expect(ModelFamily.detect(from: "kandinsky21") == .kandinsky)
+        #expect(ModelFamily.detect(from: "wurstchenStageC") == .wurstchen)
 
         // Regression checks on existing routing.
-        XCTAssertEqual(ModelFamily.detect(from: "qwenImage"), .qwen)
-        XCTAssertEqual(ModelFamily.detect(from: "flux1"), .flux)
-        XCTAssertEqual(ModelFamily.detect(from: "wan22_5b"), .wan22)
-        XCTAssertEqual(ModelFamily.detect(from: "totally-unknown-model"), .unknown)
+        #expect(ModelFamily.detect(from: "qwenImage") == .qwen)
+        #expect(ModelFamily.detect(from: "flux1") == .flux)
+        #expect(ModelFamily.detect(from: "wan22_5b") == .wan22)
+        #expect(ModelFamily.detect(from: "totally-unknown-model") == .unknown)
 
         // MiniMax H3 and LongCat-Video Avatar (version strings and filenames).
-        XCTAssertEqual(ModelFamily.detect(from: "minimaxH3"), .minimaxH3)
-        XCTAssertEqual(ModelFamily.detect(from: "minimax_h3"), .minimaxH3)
-        XCTAssertEqual(ModelFamily.detect(from: "minimax_h3_q8p.ckpt"), .minimaxH3)
-        XCTAssertEqual(ModelFamily.detect(from: "longcatVideoAvatar1_5"), .longcatVideoAvatar)
-        XCTAssertEqual(ModelFamily.detect(from: "longcat_video_avatar_v1.5"), .longcatVideoAvatar)
-        XCTAssertEqual(ModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt"), .longcatVideoAvatar)
+        #expect(ModelFamily.detect(from: "minimaxH3") == .minimaxH3)
+        #expect(ModelFamily.detect(from: "minimax_h3") == .minimaxH3)
+        #expect(ModelFamily.detect(from: "minimax_h3_q8p.ckpt") == .minimaxH3)
+        #expect(ModelFamily.detect(from: "longcatVideoAvatar1_5") == .longcatVideoAvatar)
+        #expect(ModelFamily.detect(from: "longcat_video_avatar_v1.5") == .longcatVideoAvatar)
+        #expect(ModelFamily.detect(from: "longcat_video_avatar_1.5_q8p.ckpt") == .longcatVideoAvatar)
 
         // Qwen Image 2.1 has its own 64-channel family; other Qwen Image releases stay on .qwen.
-        XCTAssertEqual(ModelFamily.detect(from: "qwenImage2_1"), .qwen21)
-        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2.1"), .qwen21)
-        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2.1_q8p.ckpt"), .qwen21)
-        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_2512_q8p.ckpt"), .qwen)
-        XCTAssertEqual(ModelFamily.detect(from: "qwen_image_edit_2511_q8p.ckpt"), .qwen)
+        #expect(ModelFamily.detect(from: "qwenImage2_1") == .qwen21)
+        #expect(ModelFamily.detect(from: "qwen_image_2.1") == .qwen21)
+        #expect(ModelFamily.detect(from: "qwen_image_2.1_q8p.ckpt") == .qwen21)
+        #expect(ModelFamily.detect(from: "qwen_image_2512_q8p.ckpt") == .qwen)
+        #expect(ModelFamily.detect(from: "qwen_image_edit_2511_q8p.ckpt") == .qwen)
     }
 
-    func testModelFamilyChannels() {
-        XCTAssertEqual(ModelFamily.sd1.latentChannels, 4)
-        XCTAssertEqual(ModelFamily.kandinsky.latentChannels, 4)
-        XCTAssertEqual(ModelFamily.wurstchen.latentChannels, 4)
-        XCTAssertEqual(ModelFamily.flux2.latentChannels, 32)
-        XCTAssertEqual(ModelFamily.wan22.latentChannels, 48)
-        XCTAssertEqual(ModelFamily.hiDreamO1.latentChannels, 3 * 32 * 32)
-        XCTAssertEqual(ModelFamily.minimaxH3.latentChannels, 24)
-        XCTAssertEqual(ModelFamily.longcatVideoAvatar.latentChannels, 16)
-        XCTAssertEqual(ModelFamily.qwen21.latentChannels, 64)
+    @Test func modelFamilyChannels() {
+        #expect(ModelFamily.sd1.latentChannels == 4)
+        #expect(ModelFamily.kandinsky.latentChannels == 4)
+        #expect(ModelFamily.wurstchen.latentChannels == 4)
+        #expect(ModelFamily.flux2.latentChannels == 32)
+        #expect(ModelFamily.wan22.latentChannels == 48)
+        #expect(ModelFamily.hiDreamO1.latentChannels == 3 * 32 * 32)
+        #expect(ModelFamily.minimaxH3.latentChannels == 24)
+        #expect(ModelFamily.longcatVideoAvatar.latentChannels == 16)
+        #expect(ModelFamily.qwen21.latentChannels == 64)
     }
 
     /// Build an uncompressed NHWC float16 DTTensor with the given per-pixel channel values.
@@ -216,50 +213,39 @@ final class DrawThingsClientTests: XCTestCase {
     }
 
     private func firstPixelRGBA(_ image: PlatformImage) throws -> [UInt8] {
-#if os(macOS)
-        let cgImage = try XCTUnwrap(image.cgImage(forProposedRect: nil, context: nil, hints: nil))
-#else
-        let cgImage = try XCTUnwrap(image.cgImage)
-#endif
-        var pixel = [UInt8](repeating: 0, count: 4)
-        let context = try XCTUnwrap(CGContext(
-            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-            space: CGColorSpace(name: CGColorSpace.sRGB)!,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ))
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1, height: 1))
-        return pixel
+        let bitmap = try RGBA8Bitmap(try #require(image.cgImageRepresentation))
+        return Array(bitmap.pixels.prefix(4))
     }
 
     /// Qwen Image 2.1 final images are 4-channel ARGB (alpha in [0, 1], RGB in [-1, 1]);
     /// they must not be run through the 4-channel SDXL latent matrix (which inverts colours).
-    func testQwen21FinalImageDecodesAsARGB() throws {
+    @Test func qwen21FinalImageDecodesAsARGB() throws {
         // Opaque pure red: A = 1, R = 1, G = -1, B = -1.
         let tensor = makeDTTensor(width: 2, height: 2, pixel: [1, 1, -1, -1])
         let image = try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21)
-        XCTAssertEqual(try firstPixelRGBA(image), [255, 0, 0, 255])
+        #expect(try firstPixelRGBA(image) == [255, 0, 0, 255])
     }
 
-    func testQwen21PreviewLatentIsSupported() throws {
+    @Test func qwen21PreviewLatentIsSupported() throws {
         let tensor = makeDTTensor(width: 2, height: 2, pixel: [Float](repeating: 0, count: 64))
-        XCTAssertNoThrow(try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21))
+        #expect(throws: Never.self) { try ImageHelpers.dtTensorToImage(tensor, modelFamily: .qwen21) }
     }
 
-    func testModelFamilyNativeFrameRate() {
-        XCTAssertEqual(ModelFamily.minimaxH3.nativeFrameRate, 24)
-        XCTAssertEqual(ModelFamily.longcatVideoAvatar.nativeFrameRate, 25)
-        XCTAssertNil(ModelFamily.flux.nativeFrameRate)
+    @Test func modelFamilyNativeFrameRate() {
+        #expect(ModelFamily.minimaxH3.nativeFrameRate == 24)
+        #expect(ModelFamily.longcatVideoAvatar.nativeFrameRate == 25)
+        #expect(ModelFamily.flux.nativeFrameRate == nil)
     }
 
-    func testMiniMaxH3AudioHeight() {
+    @Test func miniMaxH3AudioHeight() {
         // Single frame: 1 video frame -> 2 audio rows of 32 channels = 64 values;
         // row size = 1 * 8 * 24 = 192, so 1 row holds it and 192 % 32 == 0.
-        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 1, latentWidth: 8), 1)
+        #expect(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 1, latentWidth: 8) == 1)
         // Frame counts upstream would reject yield 0 (no stripping) instead of trapping.
-        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 3, latentWidth: 8), 0)
-        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 0), 0)
+        #expect(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 3, latentWidth: 8) == 0)
+        #expect(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 0) == 0)
         // 7 latent frames -> 22 real frames -> 2 * round(22/24*40) = 74 rows * 32 = 2368 values;
         // row size = 7 * 8 * 24 = 1344 -> ceil = 2, and 2688 % 32 == 0.
-        XCTAssertEqual(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 8), 2)
+        #expect(ImageHelpers.minimaxH3AudioHeight(videoLatentFrames: 7, latentWidth: 8) == 2)
     }
 }

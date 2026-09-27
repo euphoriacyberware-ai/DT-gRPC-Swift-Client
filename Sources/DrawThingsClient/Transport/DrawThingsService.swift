@@ -299,6 +299,9 @@ public actor DrawThingsService {
                     emit(.image(image, index: 0))
                     images.append(image)
                 }
+                guard !images.isEmpty else {
+                    throw DrawThingsError.incompleteResponse("the server finished without returning an image")
+                }
                 return (images, audio)
             }
         } catch {

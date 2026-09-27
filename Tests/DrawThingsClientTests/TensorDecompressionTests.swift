@@ -1,11 +1,14 @@
-import XCTest
+import CoreGraphics
+import Foundation
+import Testing
 import Compression
 import CFpzip
 @testable import DrawThingsClient
 
 /// Round-trips compressed CCV tensors through `TensorDecompression`, so the bundled
 /// fpzip codec is exercised with the package's compiler settings.
-final class TensorDecompressionTests: XCTestCase {
+@Suite("Tensor decompression")
+struct TensorDecompressionTests {
 
     private let ccv32F: UInt32 = 0x04000
     private let ccv16F: UInt32 = 0x20000
@@ -44,7 +47,7 @@ final class TensorDecompressionTests: XCTestCase {
             guard fpzip_write_header(fpz) != 0 else { return 0 }
             return values.withUnsafeBytes { fpzip_write(fpz, $0.baseAddress) }
         }
-        XCTAssertGreaterThan(written, 0, "fpzip_write failed")
+        #expect(written > 0, "fpzip_write failed")
         buffer.count = written
         return buffer
     }
@@ -57,14 +60,14 @@ final class TensorDecompressionTests: XCTestCase {
         tensor.dropFirst(68).withUnsafeBytes { Array($0.bindMemory(to: UInt16.self)) }
     }
 
-    func testUncompressedTensorIsReturnedUnchanged() throws {
+    @Test func uncompressedTensorIsReturnedUnchanged() throws {
         let values = samples(count: 64)
         let raw = values.withUnsafeBufferPointer { Data(buffer: $0) }
         let input = tensor(identifier: 0, datatype: ccv32F, dims: [1, 8, 8, 1], payload: raw)
-        XCTAssertEqual(try TensorDecompression.decompressIfNeeded(input), input)
+        #expect(try TensorDecompression.decompressIfNeeded(input) == input)
     }
 
-    func testFpzipFloat32RoundTripIsLossless() throws {
+    @Test func fpzipFloat32RoundTripIsLossless() throws {
         let values = samples(count: 32 * 24 * 3)
         let input = tensor(
             identifier: identifierFpzip, datatype: ccv32F, dims: [1, 32, 24, 3],
@@ -73,12 +76,12 @@ final class TensorDecompressionTests: XCTestCase {
 
         let output = try TensorDecompression.decompressIfNeeded(input)
 
-        XCTAssertEqual(output.prefix(4), Data(count: 4), "identifier must be reset to uncompressed")
-        XCTAssertEqual(output.subdata(in: 4..<68), input.subdata(in: 4..<68), "tensor params must be preserved")
-        XCTAssertEqual(payloadFloats(output), values)
+        #expect(output.prefix(4) == Data(count: 4), "identifier must be reset to uncompressed")
+        #expect(output.subdata(in: 4..<68) == input.subdata(in: 4..<68), "tensor params must be preserved")
+        #expect(payloadFloats(output) == values)
     }
 
-    func testFpzipFloat16TensorIsConvertedToHalfPrecision() throws {
+    @Test func fpzipFloat16TensorIsConvertedToHalfPrecision() throws {
         // Float16 tensors are stored by fpzip as Float32 and narrowed on decode.
         let values = samples(count: 16 * 16 * 4)
         let input = tensor(
@@ -88,11 +91,11 @@ final class TensorDecompressionTests: XCTestCase {
 
         let output = try TensorDecompression.decompressIfNeeded(input)
 
-        XCTAssertEqual(output.count, 68 + values.count * 2)
-        XCTAssertEqual(payloadHalfBits(output), values.map { Float16($0).bitPattern })
+        #expect(output.count == 68 + values.count * 2)
+        #expect(payloadHalfBits(output) == values.map { Float16($0).bitPattern })
     }
 
-    func testDeflateRoundTrip() throws {
+    @Test func deflateRoundTrip() throws {
         let values = samples(count: 4096)
         let raw = values.withUnsafeBufferPointer { Data(buffer: $0) }
         var compressed = Data(count: raw.count + 1024)
@@ -105,30 +108,30 @@ final class TensorDecompressionTests: XCTestCase {
                 )
             }
         }
-        XCTAssertGreaterThan(size, 0)
+        #expect(size > 0)
         compressed.count = size
 
         let input = tensor(identifier: identifierZip, datatype: ccv32F, dims: [1, 64, 64, 1], payload: compressed)
         let output = try TensorDecompression.decompressIfNeeded(input)
 
-        XCTAssertEqual(payloadFloats(output), values)
+        #expect(payloadFloats(output) == values)
     }
 
-    func testTruncatedFpzipPayloadThrows() throws {
+    @Test func truncatedFpzipPayloadThrows() throws {
         let values = samples(count: 64 * 64)
         let compressed = try fpzipCompress(values)
         // Keep the fpzip header but cut the stream at several points.
         for keep in [compressed.count / 2, compressed.count - 1, 24, 8] {
             let input = tensor(identifier: identifierFpzip, datatype: ccv32F, dims: [1, 64, 64, 1],
                                payload: compressed.prefix(keep))
-            XCTAssertThrowsError(try TensorDecompression.decompressIfNeeded(input), "kept \(keep) of \(compressed.count) bytes")
+            #expect(throws: (any Error).self, "kept \(keep) of \(compressed.count) bytes") { try TensorDecompression.decompressIfNeeded(input) }
         }
     }
 
-    func testFpzipHeaderMustMatchTensorHeader() throws {
+    @Test func fpzipHeaderMustMatchTensorHeader() throws {
         let compressed = try fpzipCompress(samples(count: 100))
         // Tensor header claims 200 elements; the stream has 100.
         let input = tensor(identifier: identifierFpzip, datatype: ccv32F, dims: [1, 200], payload: compressed)
-        XCTAssertThrowsError(try TensorDecompression.decompressIfNeeded(input))
+        #expect(throws: (any Error).self) { try TensorDecompression.decompressIfNeeded(input) }
     }
 }
