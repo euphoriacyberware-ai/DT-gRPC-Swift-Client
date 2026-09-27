@@ -40,6 +40,36 @@ struct GenerationTypeTests {
         #expect(!single.isVideo)
     }
 
+    /// Frame rates follow Draw Things' `ModelZoo.framesPerSecondForModel`: the spec's own rate,
+    /// then its version's, then the family's.
+    @Test func specFrameRatesTakePrecedence() throws {
+        func spec(_ json: String) throws -> ModelSpec { try #require(ModelSpec(json: Data(json.utf8))) }
+
+        // Some Wan 2.1 14B models run at 24 fps rather than the family's 16.
+        let wan24 = try spec(#"{"file":"wan_24.ckpt","version":"wan_v2.1_14b","frames_per_second":24}"#)
+        let wan = MediaProfile(configuration: DrawThingsConfiguration(model: "wan_24.ckpt", numFrames: 21), spec: wan24)
+        #expect(wan.isVideo)
+        #expect(wan.frameRate == 24)
+
+        // SVD decodes with the SD 1.x family but is a 30 fps video model.
+        let svd = MediaProfile(configuration: DrawThingsConfiguration(model: "svd_i2v_1.1_q8p.ckpt", numFrames: 14),
+                               spec: try spec(#"{"file":"svd_i2v_1.1_q8p.ckpt","version":"svd_i2v"}"#))
+        #expect(svd.family == .sd1)
+        #expect(svd.isVideo)
+        #expect(svd.frameRate == 30)
+
+        // An image model stays an image model whatever its spec says.
+        let image = MediaProfile(configuration: DrawThingsConfiguration(model: "flux.ckpt"),
+                                 spec: try spec(#"{"file":"flux.ckpt","version":"flux1","frames_per_second":30}"#))
+        #expect(!image.isVideo)
+        #expect(image.frameRate == nil)
+
+        // Without a spec: the family's rate.
+        #expect(ModelFamily.hunyuanVideo.nativeFrameRate == 30)
+        #expect(ModelFamily.wan22.nativeFrameRate == 24)
+        #expect(ModelFamily.frameRate(forVersion: "flux1") == nil)
+    }
+
     @Test func requestOverridesWin() {
         let request = GenerationRequest(
             prompt: "x",

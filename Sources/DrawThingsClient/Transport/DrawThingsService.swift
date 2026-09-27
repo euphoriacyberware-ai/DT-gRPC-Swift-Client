@@ -250,7 +250,8 @@ public actor DrawThingsService {
         )
         DTLogger.debug("Sending request \(request.id): config \(input.configuration.count) bytes, contents \(message.contents.count), hints \(request.hints.count)", category: .grpc)
 
-        let media = request.media
+        let spec = request.modelFamily == nil ? await modelSpecs.spec(for: request.configuration.model) : nil
+        let media = MediaProfile(configuration: request.configuration, family: request.modelFamily, audioSampleRate: request.audioSampleRate, spec: spec)
         let totalSteps = Int(request.configuration.steps)
         let outputs: (images: [CGImage], audio: [GeneratedAudio])
         do {

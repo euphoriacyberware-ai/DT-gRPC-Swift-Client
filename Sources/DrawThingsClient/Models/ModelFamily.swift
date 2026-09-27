@@ -236,17 +236,34 @@ public enum ModelFamily: String, Sendable, CaseIterable {
         }
     }
 
-    /// The native frame rate for video model families, or `nil` for image-only models.
+    /// The usual frame rate for video model families, or `nil` for image-only models. A model's
+    /// spec can set its own rate (see ``ModelSpec/framesPerSecond``), which takes precedence.
+    /// Matches Draw Things' `ModelZoo.framesPerSecondForModel`.
     public var nativeFrameRate: Int? {
         switch self {
-        case .wan21, .wan22:
+        case .wan21:
             return 16
-        case .hunyuanVideo, .minimaxH3:
+        case .wan22, .minimaxH3:
             return 24
         case .ltx2, .ltx23, .longcatVideoAvatar:
             return 25
+        case .hunyuanVideo:
+            return 30
         default:
             return nil
+        }
+    }
+
+    /// The frame rate for a video model version string (as in a model spec), or `nil` for image
+    /// models. Covers Stable Video Diffusion, which decodes with the ``sd1`` family.
+    /// Matches Draw Things' `ModelZoo.framesPerSecondForModel`.
+    public static func frameRate(forVersion version: String) -> Int? {
+        switch version.lowercased() {
+        case "svdi2v", "svd_i2v":
+            return 30
+        default:
+            let family = detect(from: version)
+            return family == .unknown ? nil : family.nativeFrameRate
         }
     }
 

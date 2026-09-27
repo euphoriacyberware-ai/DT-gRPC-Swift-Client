@@ -57,7 +57,8 @@ public struct GenerationRequest: Sendable, Identifiable {
         self.audioSampleRate = audioSampleRate
     }
 
-    /// The media properties this request's output will have.
+    /// The media properties this request's output will have, from the model family. A result's
+    /// ``GenerationResult/media`` also uses the model's spec, which can set a different frame rate.
     public var media: MediaProfile {
         MediaProfile(configuration: configuration, family: modelFamily, audioSampleRate: audioSampleRate)
     }

@@ -22,6 +22,8 @@ public struct ModelSpec: Sendable, Hashable {
     public let json: Data
     /// Files of additional models this model runs with (for example Stable Cascade stage B).
     public let stageModels: [String]
+    /// The model's own video frame rate, when its spec sets one (`frames_per_second`).
+    public let framesPerSecond: Double?
 
     /// Creates a spec from a JSON object. Returns nil if the object has no `file` key.
     public init?(json: Data) {
@@ -36,6 +38,7 @@ public struct ModelSpec: Sendable, Hashable {
         self.file = file
         self.version = object["version"] as? String
         self.stageModels = object["stage_models"] as? [String] ?? []
+        self.framesPerSecond = (object["frames_per_second"] as? NSNumber)?.doubleValue
         self.json = json
     }
 

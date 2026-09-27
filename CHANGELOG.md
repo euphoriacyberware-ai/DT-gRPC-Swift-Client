@@ -56,6 +56,9 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - Image encoding and decoding use Accelerate (2048×2048 encode 25 → 9 ms, decode 15 → 2 ms).
 
 ### Fixed
+- Video frame rates now follow Draw Things: a model's spec can set its own rate (some Wan 2.1 14B
+  and Hunyuan models differ from their family), Hunyuan Video is 30 fps, Wan 2.2 5B is 24 fps, and
+  Stable Video Diffusion counts as a 30 fps video model.
 - fpzip's error code was a global written by every decode, a data race when tensors were decoded
   concurrently (found with the Thread Sanitizer). It is now per thread.
 - VideoKit: ML frame interpolation gave every interpolated frame a timestamp of 0.

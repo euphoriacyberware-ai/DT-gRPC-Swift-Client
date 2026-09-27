@@ -36,12 +36,17 @@ public struct MediaProfile: Sendable, Hashable {
     ///   - family: Overrides the family detected from `configuration.model`.
     ///   - audioSampleRate: Overrides the family's audio sample rate (for example from server
     ///     model metadata).
-    public init(configuration: DrawThingsConfiguration, family: ModelFamily? = nil, audioSampleRate: Double? = nil) {
+    ///   - spec: The model's spec. Its frame rate (or its version's) takes precedence over the
+    ///     family's, as some models of the same family run at different rates.
+    public init(configuration: DrawThingsConfiguration, family: ModelFamily? = nil, audioSampleRate: Double? = nil, spec: ModelSpec? = nil) {
         let family = family ?? ModelFamily.detect(from: configuration.model)
+        let versionRate = spec?.version.flatMap(ModelFamily.frameRate(forVersion:))
+        // Only video models have a frame rate; a spec's rate on an image model is ignored.
+        let modelRate = versionRate ?? family.nativeFrameRate
         self.family = family
-        self.frameRate = family.nativeFrameRate
+        self.frameRate = modelRate.map { rate in spec?.framesPerSecond.map { Int($0.rounded()) } ?? rate }
         // numFrames defaults to 14 for every configuration, so only a video model counts.
-        self.isVideo = family.nativeFrameRate != nil && configuration.numFrames > 1
+        self.isVideo = modelRate != nil && configuration.numFrames > 1
         self.audioSampleRate = audioSampleRate ?? family.audioSampleRate
     }
 }
