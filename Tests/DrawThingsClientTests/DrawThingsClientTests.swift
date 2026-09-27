@@ -42,7 +42,7 @@ struct DrawThingsClientTests {
                 seedMode: mode
             )
             let data = try config.toFlatBufferData()
-            var buffer = ByteBuffer(data: data)
+            let buffer = ByteBuffer(data: data)
             let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
             let root = GenerationConfiguration(buffer, o: rootOffset)
             #expect(root.seedMode == expected, "seedMode \(mode) should encode as \(expected)")
@@ -72,7 +72,7 @@ struct DrawThingsClientTests {
             causalInference: 0
         )
         let data = try config.toFlatBufferData()
-        var buffer = ByteBuffer(data: data)
+        let buffer = ByteBuffer(data: data)
         let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
         let root = GenerationConfiguration(buffer, o: rootOffset)
 
@@ -98,7 +98,7 @@ struct DrawThingsClientTests {
             model: "z_image_turbo_1.0_q8p.ckpt", guidanceScale: 1.0
         )
         let data = try config.toFlatBufferData()
-        var buffer = ByteBuffer(data: data)
+        let buffer = ByteBuffer(data: data)
         let rootOffset = Int32(buffer.read(def: UInt32.self, position: 0))
         let root = GenerationConfiguration(buffer, o: rootOffset)
 

@@ -25,6 +25,16 @@ jobs:
         run: swift build
       - name: Test
         run: swift test
+        env:
+          # Print a symbolicated backtrace if the test process crashes.
+          SWIFT_BACKTRACE: enable=yes,sanitize=yes,threads=all
+      - name: Upload crash reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-reports
+          path: ~/Library/Logs/DiagnosticReports/
+          if-no-files-found: ignore
 
   ios:
     name: iOS simulator build
