@@ -17,7 +17,13 @@ struct TensorDecompressionTests {
 
     /// Deterministic, non-trivial float samples (smooth ramp plus a sine component).
     private func samples(count: Int) -> [Float] {
-        (0..<count).map { i in Float(i) / Float(count) * 2 - 1 + 0.1 * sin(Float(i) * 0.37) }
+        // Typed steps: the single-expression form times out the type checker on some toolchains.
+        (0..<count).map { i -> Float in
+            let x = Float(i)
+            let ramp: Float = x / Float(count) * 2 - 1
+            let wave: Float = 0.1 * sin(x * 0.37)
+            return ramp + wave
+        }
     }
 
     /// Builds a 68-byte CCV tensor header followed by `payload`.
