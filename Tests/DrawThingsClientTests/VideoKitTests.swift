@@ -5,6 +5,18 @@ import Testing
 @testable import DrawThingsClient
 @testable import DrawThingsVideoKit
 
+extension Trait where Self == ConditionTrait {
+    /// For tests that encode video. AVAssetWriter crashes the test process intermittently
+    /// (SIGSEGV) on GitHub's macOS 15 runner VMs, including for a plain video with no audio;
+    /// it has not crashed on real hardware. Run these tests locally.
+    static var writesVideo: Self {
+        .disabled(
+            if: ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == "true",
+            "AVAssetWriter crashes intermittently on GitHub's macOS runner VMs"
+        )
+    }
+}
+
 /// Solid-color frames and generated results for the video tests.
 enum VideoFixtures {
     static func frame(width: Int = 64, height: Int = 64, gray: CGFloat) -> CGImage {
@@ -74,7 +86,7 @@ enum VideoFixtures {
 
 @Suite("VideoAssembler")
 struct VideoAssemblerTests {
-    @Test func writesFramesAtTheSourceFrameRate() async throws {
+    @Test(.writesVideo) func writesFramesAtTheSourceFrameRate() async throws {
         let url = VideoFixtures.temporaryURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let assembler = VideoAssembler()
@@ -94,7 +106,7 @@ struct VideoAssemblerTests {
         #expect(progress.values.last == 1)
     }
 
-    @Test func muxesAudioTrimmedToTheVideo() async throws {
+    @Test(.writesVideo) func muxesAudioTrimmedToTheVideo() async throws {
         let url = VideoFixtures.temporaryURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let output = try await VideoAssembler().assemble(
@@ -106,7 +118,7 @@ struct VideoAssemblerTests {
         #expect(abs(info.duration - 0.5) < 0.1)
     }
 
-    @Test func coreImageInterpolationAndUpscaling() async throws {
+    @Test(.writesVideo) func coreImageInterpolationAndUpscaling() async throws {
         let url = VideoFixtures.temporaryURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let assembler = VideoAssembler(preferredInterpolationMethod: .coreImageDissolve, preferredSuperResolutionMethod: .coreImageLanczos)
@@ -209,7 +221,7 @@ struct VideoProcessorTests {
         #expect(processor.collectedFrames.audioData == nil)
     }
 
-    @Test func autoAssemblesEveryResultInOrderAtTheModelFrameRate() async throws {
+    @Test(.writesVideo) func autoAssemblesEveryResultInOrderAtTheModelFrameRate() async throws {
         let urls = [UUID: URL]()
         let outputs = OutputURLs(urls)
         let processor = VideoProcessor(configuration: VideoProcessorConfiguration(
