@@ -423,7 +423,7 @@ swift test
 
 The tests include an in-process gRPC server that stands in for Draw Things, so they need no running server.
 
-- `Scripts/generate.sh` regenerates the protobuf, gRPC and FlatBuffers code in `Sources/DrawThingsClient/Generated` (and the test server stubs) from the schemas in `Protos/`. It needs `protoc` and `flatc` 25.9.23; the protoc plugins are built from the package's pinned dependencies. `Scripts/generate.sh --sync <draw-things-community>` first copies newer schemas from a checkout of the Draw Things community repository.
+- `Scripts/generate.sh <path-to-draw-things-community>` regenerates the protobuf, gRPC and FlatBuffers code in `Sources/DrawThingsClient/Generated` (and the test server stubs) from the protocol schemas in a local checkout of [draw-things-community](https://github.com/drawthingsai/draw-things-community). The schemas themselves are not stored in this repository. It needs `protoc` and `flatc` 25.9.23; the protoc plugins are built from the package's pinned dependencies.
 - `Scripts/update-model-specs.sh` refreshes the bundled `models.json`. CI runs it weekly and opens a pull request when it changed.
 
 ## Credits

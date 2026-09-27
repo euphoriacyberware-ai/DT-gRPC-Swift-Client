@@ -29,7 +29,8 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - `DrawThingsError`.
 - `CGImage` forms of all image helpers; `loadCGImage(from:)` and `decodeCGImage(_:)` apply EXIF
   orientation.
-- `Scripts/generate.sh` (code generation from `Protos/`) and `Scripts/update-model-specs.sh`.
+- `Scripts/generate.sh` (code generation from a local draw-things-community checkout) and
+  `Scripts/update-model-specs.sh`.
 - CI for macOS and iOS; a weekly workflow that refreshes the bundled model specs.
 - An in-process gRPC test server; 108 tests on Swift Testing.
 

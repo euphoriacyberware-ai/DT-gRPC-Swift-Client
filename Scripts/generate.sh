@@ -1,30 +1,45 @@
 #!/usr/bin/env bash
 #
 # Regenerates the protobuf, gRPC and FlatBuffers sources in
-# Sources/DrawThingsClient/Generated from the schemas in Protos/, plus the gRPC server stubs
-# the tests' in-process server uses (Tests/DrawThingsClientTests/Generated).
+# Sources/DrawThingsClient/Generated, plus the gRPC server stubs the tests' in-process
+# server uses (Tests/DrawThingsClientTests/Generated).
+#
+# The schemas (imageService.proto and config.fbs) are read from a local checkout of
+# https://github.com/drawthingsai/draw-things-community; they are not stored in this
+# repository.
 #
 # The protoc plugins are built from this package's resolved dependencies, so the
 # generated code always matches the swift-protobuf / grpc-swift-protobuf runtime
 # pinned in Package.resolved. Requires `protoc` and `flatc` (25.9.23) on PATH.
 #
 # Usage:
-#   Scripts/generate.sh                 # regenerate from Protos/
-#   Scripts/generate.sh --sync <path>   # first copy schemas from a draw-things-community checkout
+#   Scripts/generate.sh <path-to-draw-things-community>
+#   DT_COMMUNITY=<path> Scripts/generate.sh
 #
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROTOS="$ROOT/Protos"
 OUT="$ROOT/Sources/DrawThingsClient/Generated"
 FLATC_VERSION="25.9.23"
 
-if [[ "${1:-}" == "--sync" ]]; then
-  COMMUNITY="${2:?usage: generate.sh --sync <path-to-draw-things-community>}"
-  cp "$COMMUNITY/Libraries/GRPC/Models/Sources/imageService/imageService.proto" "$PROTOS/"
-  cp "$COMMUNITY/Libraries/DataModels/Sources/config.fbs" "$PROTOS/"
-  echo "Synced schemas from $COMMUNITY ($(git -C "$COMMUNITY" rev-parse --short HEAD 2>/dev/null || echo unknown))"
+COMMUNITY="${1:-${DT_COMMUNITY:-}}"
+if [[ -z "$COMMUNITY" ]]; then
+  echo "usage: Scripts/generate.sh <path-to-draw-things-community> (or set DT_COMMUNITY)" >&2
+  exit 1
 fi
+PROTO_SOURCE="$COMMUNITY/Libraries/GRPC/Models/Sources/imageService/imageService.proto"
+FBS_SOURCE="$COMMUNITY/Libraries/DataModels/Sources/config.fbs"
+for schema in "$PROTO_SOURCE" "$FBS_SOURCE"; do
+  [[ -f "$schema" ]] || { echo "error: $schema not found; is $COMMUNITY a draw-things-community checkout?" >&2; exit 1; }
+done
+
+# Work on temporary copies of the schemas.
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+PROTOS="$TMP/protos"
+mkdir -p "$PROTOS"
+cp "$PROTO_SOURCE" "$FBS_SOURCE" "$PROTOS/"
+echo "Using schemas from $COMMUNITY ($(git -C "$COMMUNITY" rev-parse --short HEAD 2>/dev/null || echo "not a git checkout"))"
 
 command -v protoc >/dev/null || { echo "error: protoc not found" >&2; exit 1; }
 command -v flatc >/dev/null || { echo "error: flatc not found" >&2; exit 1; }
@@ -65,9 +80,7 @@ protoc \
 
 echo "Generating FlatBuffers configuration..."
 # config.fbs is a Dflat schema: it uses the `primary` and `indexed` attributes,
-# which Dflat declares itself. Declare them for plain flatc on a temporary copy.
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+# which Dflat declares itself. Declare them for plain flatc.
 { printf 'attribute "primary";\nattribute "indexed";\n'; cat "$PROTOS/config.fbs"; } > "$TMP/config.fbs"
 flatc --swift --gen-object-api -o "$OUT" "$TMP/config.fbs"
 # flatc does not emit Sendable, and Swift 6 only accepts a checked Sendable conformance
