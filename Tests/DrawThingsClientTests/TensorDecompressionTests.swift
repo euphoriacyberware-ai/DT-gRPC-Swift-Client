@@ -113,4 +113,22 @@ final class TensorDecompressionTests: XCTestCase {
 
         XCTAssertEqual(payloadFloats(output), values)
     }
+
+    func testTruncatedFpzipPayloadThrows() throws {
+        let values = samples(count: 64 * 64)
+        let compressed = try fpzipCompress(values)
+        // Keep the fpzip header but cut the stream at several points.
+        for keep in [compressed.count / 2, compressed.count - 1, 24, 8] {
+            let input = tensor(identifier: identifierFpzip, datatype: ccv32F, dims: [1, 64, 64, 1],
+                               payload: compressed.prefix(keep))
+            XCTAssertThrowsError(try TensorDecompression.decompressIfNeeded(input), "kept \(keep) of \(compressed.count) bytes")
+        }
+    }
+
+    func testFpzipHeaderMustMatchTensorHeader() throws {
+        let compressed = try fpzipCompress(samples(count: 100))
+        // Tensor header claims 200 elements; the stream has 100.
+        let input = tensor(identifier: identifierFpzip, datatype: ccv32F, dims: [1, 200], payload: compressed)
+        XCTAssertThrowsError(try TensorDecompression.decompressIfNeeded(input))
+    }
 }

@@ -54,12 +54,22 @@ private:
 
 class RCmemdecoder : public RCdecoder {
 public:
-  RCmemdecoder(const void* buffer) : RCdecoder(), ptr((const uchar*)buffer), begin(ptr) {}
-  uint getbyte() { return *ptr++; }
+  RCmemdecoder(const void* buffer) : RCdecoder(), ptr((const uchar*)buffer), begin(ptr), end(0) {}
+  // DrawThingsClient addition: bounded reader that flags an error instead of reading past `size` bytes
+  RCmemdecoder(const void* buffer, size_t size) : RCdecoder(), ptr((const uchar*)buffer), begin(ptr), end(ptr + size) {}
+  uint getbyte()
+  {
+    if (end && ptr >= end) {
+      error = true;
+      return 0;
+    }
+    return *ptr++;
+  }
   size_t bytes() const { return ptr - begin; }
 private:
   const uchar* ptr;
   const uchar* const begin;
+  const uchar* const end; // null when unbounded
 };
 
 #endif

@@ -189,6 +189,14 @@ fpzip_read_from_buffer(
   const void* buffer  /* pointer to compressed input data */
 );
 
+/* associate memory buffer of known size with compressed input stream; reading past
+   the end fails with fpzipErrorReadStream instead of overrunning (DrawThingsClient addition) */
+FPZ*                  /* compressed stream */
+fpzip_read_from_buffer_size(
+  const void* buffer, /* pointer to compressed input data */
+  size_t size         /* size of compressed input data in bytes */
+);
+
 /* read FPZ meta data (use only if previously written) */
 int                   /* nonzero upon success */
 fpzip_read_header(

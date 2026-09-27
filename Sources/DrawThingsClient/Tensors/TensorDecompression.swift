@@ -205,7 +205,8 @@ enum TensorDecompression {
 
         var decoded = Data(count: elementCount * elementSize)
         try data.withUnsafeBytes { (source: UnsafeRawBufferPointer) in
-            guard let fpz = fpzip_read_from_buffer(source.baseAddress!) else {
+            // Bounded reader: a truncated stream fails instead of reading past the buffer.
+            guard let fpz = fpzip_read_from_buffer_size(source.baseAddress!, source.count) else {
                 throw DecompressionError.fpzipFailed("could not open stream")
             }
             defer { fpzip_read_close(fpz) }
