@@ -24,8 +24,6 @@ let package = Package(
             path: "Sources/CFpzip",
             exclude: [
                 "LICENSE",
-                "src/CMakeLists.txt",
-                "src/Makefile",
                 "src/fpe.inl",
                 "src/pccodec.inl",
                 "src/pcdecoder.inl",
@@ -42,7 +40,6 @@ let package = Package(
                 .define("FPZIP_BLOCK_SIZE", to: "0x1000"),
                 .headerSearchPath("src"),
                 .headerSearchPath("include"),
-                .unsafeFlags(["-std=c++98", "-fPIC"]),
             ]
         ),
         .target(
@@ -59,7 +56,7 @@ let package = Package(
         ),
         .testTarget(
             name: "DrawThingsClientTests",
-            dependencies: ["DrawThingsClient"]
+            dependencies: ["DrawThingsClient", "CFpzip"]
         ),
     ],
     cxxLanguageStandard: .cxx11
