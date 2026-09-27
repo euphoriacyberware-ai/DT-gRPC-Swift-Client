@@ -19,6 +19,10 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - `DrawThingsQueue` product (formerly the separate DrawThingsQueue package): an `@Observable`
   `GenerationQueue` built on the event stream, with pause, cancel, retry, reordering, `AsyncStream`
   events and results, and saved queues that keep input images and hints and read 0.x files.
+- `DrawThingsVideoKit` product (formerly the separate DrawThingsVideoKit package, without its
+  SwiftUI views): an `@Observable` `VideoProcessor` fed by any sequence of `GenerationResult`s,
+  using `result.media` for video detection and frame rate and `result.audio` for the soundtrack.
+  Automatic assemblies are queued, so a result that arrives during an assembly also gets a video.
 - `ConnectionOptions`: TLS verification policy, shared secret, client identity, message size,
   request timeout and model spec source. `ServerEndpoint` parses IPv6 addresses.
 - `MediaProfile` and `GeneratedAudio` (planar PCM, `AVAudioPCMBuffer` and in-memory WAV).
@@ -52,6 +56,7 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
 - Image encoding and decoding use Accelerate (2048×2048 encode 25 → 9 ms, decode 15 → 2 ms).
 
 ### Fixed
+- VideoKit: ML frame interpolation gave every interpolated frame a timestamp of 0.
 - A generation that failed on the server was returned as a success, with the last preview (a
   small latent-sized image) as its result. It now throws `DrawThingsError.incompleteResponse`.
 - Audio could be missing from results, and progress and previews could arrive out of order.

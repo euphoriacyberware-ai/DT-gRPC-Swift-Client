@@ -49,13 +49,15 @@ Then add the products you use to your target:
 
 ```swift
 .product(name: "DrawThingsClient", package: "DrawThings-Swift"),
-.product(name: "DrawThingsQueue", package: "DrawThings-Swift"),   // optional
+.product(name: "DrawThingsQueue", package: "DrawThings-Swift"),     // optional
+.product(name: "DrawThingsVideoKit", package: "DrawThings-Swift"),  // optional
 ```
 
 | Product | Contents |
 |---|---|
 | `DrawThingsClient` | `DrawThingsService`, `DrawThingsSession`, configuration and JSON, tensors and image helpers, media types, logging. No SwiftUI or Combine. |
 | `DrawThingsQueue` | `GenerationQueue`: runs many requests in order, with pause, cancel, retry, reordering and saved queues. |
+| `DrawThingsVideoKit` | `VideoProcessor` and `VideoAssembler`: video results to video files at the model's frame rate, with audio, frame interpolation and super resolution. |
 
 **DrawThings family:** this is the base library that [DrawThingsQueue](https://github.com/euphoriacyberware-ai/DrawThingsQueue), [DrawThingsKit](https://github.com/euphoriacyberware-ai/DrawThingsKit) and [DrawThingsVideoKit](https://github.com/euphoriacyberware-ai/DrawThingsVideoKit) build on.
 

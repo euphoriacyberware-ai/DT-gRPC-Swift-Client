@@ -219,17 +219,29 @@ Behavior changes:
 - Saved queues keep input images, masks, hints and overrides. Files saved by 0.x (same default
   location) are read, without those.
 
-## Media for video apps (DrawThingsVideoKit)
+## DrawThingsVideoKit 0.x
 
-`GenerationResult` carries what VideoKit previously took from DrawThingsQueue:
+VideoKit is now the `DrawThingsVideoKit` product of this package and no longer depends on
+DrawThingsQueue; the separate repository stays at 0.3.1 for 1.x apps. Add
+`.product(name: "DrawThingsVideoKit", package: "DrawThings-Swift")` and remove the old package.
 
-| Previously | 2.0 |
+| DrawThingsVideoKit 0.x | 2.0 |
 |---|---|
-| `result.images: [PlatformImage]` | `result.images: [CGImage]`, `result.platformImages` |
-| `result.audioData: [Data]` (WAV) | `result.audio.map { $0.wavData() }` |
-| `request.configuration.numFrames > 1` | `result.media.isVideo` (only true for video models; `numFrames` defaults to 14 for every configuration) |
-| `LatentModelFamily.detect(from: model).nativeFrameRate ?? 16` | `result.media.frameRate` |
-| Queue's `defaultAudioSampleRate(forModelFile:)` | `result.media.audioSampleRate`, `ModelFamily.audioSampleRate` |
+| `VideoProcessor` (`ObservableObject`) | `VideoProcessor` (`@Observable`) |
+| `connect(to: DrawThingsQueue)` | `connect(to:)` any `AsyncSequence` of `GenerationResult`, such as `queue.results`; or `ingest(_:)` |
+| `events` (Combine `PassthroughSubject`) | `events: AsyncStream<VideoProcessorEvent>` |
+| `addFrames(from: [PlatformImage], result:)` | `addFrames(from: GenerationResult)` |
+| `updateConfiguration(_:)` | set `processor.configuration` |
+| video detection: `numFrames > 1` | `result.media.isVideo` (only video models; `numFrames` defaults to 14 for every configuration) |
+| frame rate: `LatentModelFamily.detect(from:).nativeFrameRate ?? 16` | `result.media.frameRate` |
+| audio: `result.audioData` (WAV from the Queue) | `result.audio` (`GeneratedAudio`); collected as WAV in `collectedFrames.audioData` |
+| `VideoFrameMetadata.seed: Int64?` | `UInt32?`; saved collections still load |
+| VideoKit's own `PlatformImage` typealias | the core's `PlatformImage` |
+| `VideoConfigurationView`, `VideoAssemblyProgressView`, `VideoFrameCollectionView` | removed; the library has no views (see the example app) |
+| `DrawThingsVideoKitInfo` | removed |
+
+New: `lastOutputURL`, and automatic assemblies are queued instead of skipped while another is
+running.
 
 ## Removed
 

@@ -16,6 +16,10 @@ let package = Package(
             name: "DrawThingsQueue",
             targets: ["DrawThingsQueue"]
         ),
+        .library(
+            name: "DrawThingsVideoKit",
+            targets: ["DrawThingsVideoKit"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
@@ -69,11 +73,16 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ]
         ),
+        .target(
+            name: "DrawThingsVideoKit",
+            dependencies: ["DrawThingsClient"]
+        ),
         .testTarget(
             name: "DrawThingsClientTests",
             dependencies: [
                 "DrawThingsClient",
                 "DrawThingsQueue",
+                "DrawThingsVideoKit",
                 "CFpzip",
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),

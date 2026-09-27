@@ -13,7 +13,6 @@ import CoreGraphics
 import DrawThingsClient
 import Foundation
 import Observation
-import Synchronization
 
 /// Runs generation requests one at a time, in order.
 ///
@@ -370,32 +369,5 @@ public final class GenerationQueue {
     private func trimFinished() {
         let excess = finished.count - max(0, maxFinishedJobs)
         if excess > 0 { finished.removeFirst(excess) }
-    }
-}
-
-/// Delivers values to any number of `AsyncStream` subscribers.
-final class Broadcast<Element: Sendable>: Sendable {
-    private let continuations = Mutex<[UUID: AsyncStream<Element>.Continuation]>([:])
-
-    func subscribe() -> AsyncStream<Element> {
-        let (stream, continuation) = AsyncStream.makeStream(of: Element.self)
-        let id = UUID()
-        continuations.withLock { $0[id] = continuation }
-        continuation.onTermination = { [weak self] _ in
-            _ = self?.continuations.withLock { $0.removeValue(forKey: id) }
-        }
-        return stream
-    }
-
-    func send(_ value: Element) {
-        for continuation in continuations.withLock({ Array($0.values) }) {
-            continuation.yield(value)
-        }
-    }
-
-    func finish() {
-        for continuation in continuations.withLock({ Array($0.values) }) {
-            continuation.finish()
-        }
     }
 }
