@@ -3,7 +3,7 @@
 All notable changes to DrawThingsClient are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
-## 2.0.0 — Unreleased
+## 2.0.0 — 2026-09-27
 
 A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API mapping.
 
