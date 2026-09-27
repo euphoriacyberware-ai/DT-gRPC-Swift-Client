@@ -16,7 +16,7 @@ import Observation
 
 /// Observable connection state and generation progress for SwiftUI.
 ///
-/// Wraps a ``DrawThingsService`` and mirrors its event stream into observable properties, so
+/// Wraps a `DrawThingsService` and mirrors its event stream into observable properties, so
 /// views update as progress and previews arrive:
 ///
 /// ```swift
@@ -32,7 +32,7 @@ import Observation
 /// ```
 ///
 /// One generation runs at a time; ``generate(_:)`` throws ``SessionError/busy`` while another is
-/// in progress. For queueing, use DrawThingsQueue or call ``DrawThingsService`` directly.
+/// in progress. For queueing, use DrawThingsQueue or call `DrawThingsService` directly.
 @MainActor
 @Observable
 public final class DrawThingsSession {

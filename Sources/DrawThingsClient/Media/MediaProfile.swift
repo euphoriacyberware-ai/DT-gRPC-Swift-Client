@@ -32,6 +32,7 @@ public struct MediaProfile: Sendable, Hashable {
     /// Resolves the profile for a configuration.
     ///
     /// - Parameters:
+    ///   - configuration: The generation configuration.
     ///   - family: Overrides the family detected from `configuration.model`.
     ///   - audioSampleRate: Overrides the family's audio sample rate (for example from server
     ///     model metadata).

@@ -26,7 +26,7 @@ public struct ConnectionOptions: Sendable {
     /// (a 2048×2048 image is 24 MiB) and responses carry 4 MiB chunks plus framing, so the
     /// gRPC default of 4 MiB is too small; the default here is 256 MiB.
     public var maxMessageBytes: Int
-    /// Timeout for unary calls such as ``DrawThingsService/echo()``. Generation calls are not
+    /// Timeout for unary calls such as ``DrawThingsService/echo(name:)``. Generation calls are not
     /// limited, because they can legitimately take many minutes.
     public var requestTimeout: Duration
     /// Where model specifications come from. See ``ModelSpecSource``.

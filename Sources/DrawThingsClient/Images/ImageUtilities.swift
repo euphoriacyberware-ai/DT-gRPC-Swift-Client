@@ -102,12 +102,22 @@ extension ImageHelpers {
 
     /// Saves an image as PNG or JPEG.
     ///
-    /// - Parameter jpegQuality: JPEG compression quality (0.0-1.0), only used for `.jpeg`.
+    /// - Parameters:
+    ///   - image: The image to save.
+    ///   - url: The destination file URL.
+    ///   - format: `.png` or `.jpeg`.
+    ///   - jpegQuality: JPEG compression quality (0.0-1.0), only used for `.jpeg`.
     public static func saveImage(_ image: PlatformImage, to url: URL, format: ImageFormat = .png, jpegQuality: Float = 0.9) throws {
         try saveImage(try cgImage(from: image), to: url, format: format, jpegQuality: jpegQuality)
     }
 
     /// Saves a `CGImage` as PNG or JPEG.
+    ///
+    /// - Parameters:
+    ///   - image: The image to save.
+    ///   - url: The destination file URL.
+    ///   - format: `.png` or `.jpeg`.
+    ///   - jpegQuality: JPEG compression quality (0.0-1.0), only used for `.jpeg`.
     public static func saveImage(_ image: CGImage, to url: URL, format: ImageFormat = .png, jpegQuality: Float = 0.9) throws {
         let type = format == .png ? UTType.png : UTType.jpeg
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil) else {

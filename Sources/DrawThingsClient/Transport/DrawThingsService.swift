@@ -209,7 +209,9 @@ public actor DrawThingsService {
 
     /// Generates a request and returns the result once it completes.
     ///
-    /// - Parameter onEvent: Called for each event before the result is returned, in order.
+    /// - Parameters:
+    ///   - request: The generation to run.
+    ///   - onEvent: Called for each event before the result is returned, in order.
     public func generate(
         _ request: GenerationRequest,
         onEvent: (@Sendable (GenerationEvent) async -> Void)? = nil
