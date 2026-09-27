@@ -1,5 +1,5 @@
 //
-//  ImageHelpers.swift
+//  LatentPreview.swift
 //  DrawThingsClient
 //
 //  Created by euphoriacyberware-ai.
@@ -9,552 +9,10 @@
 //  See LICENSE file in the project root for license information.
 //
 
-import Foundation
 import CoreGraphics
-import UniformTypeIdentifiers
+import Foundation
 
-#if os(macOS)
-import AppKit
-public typealias PlatformImage = NSImage
-public typealias PlatformColor = NSColor
-#else
-import UIKit
-public typealias PlatformImage = UIImage
-public typealias PlatformColor = UIColor
-#endif
-
-// MARK: - Platform Image Extensions
-
-extension PlatformImage {
-    /// Create a platform image from Data
-    public static func fromData(_ data: Data) -> PlatformImage? {
-        #if os(macOS)
-        return NSImage(data: data)
-        #else
-        return UIImage(data: data)
-        #endif
-    }
-
-    /// Wraps a `CGImage` at 1 point per pixel.
-    public static func fromCGImage(_ cgImage: CGImage) -> PlatformImage {
-        #if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-        #else
-        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .up)
-        #endif
-    }
-
-    #if os(macOS)
-    /// Convert to PNG data
-    public func pngData() -> Data? {
-        guard let tiffData = tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else {
-            return nil
-        }
-        return bitmap.representation(using: .png, properties: [:])
-    }
-    #endif
-    // Note: On iOS, UIImage already has pngData() built-in, so no extension needed
-
-    /// Get the image dimensions in pixels
-    public var pixelWidth: Int {
-        #if os(macOS)
-        guard let rep = representations.first else { return 0 }
-        return rep.pixelsWide
-        #else
-        return Int(size.width * scale)
-        #endif
-    }
-
-    public var pixelHeight: Int {
-        #if os(macOS)
-        guard let rep = representations.first else { return 0 }
-        return rep.pixelsHigh
-        #else
-        return Int(size.height * scale)
-        #endif
-    }
-
-    /// Get CGImage representation
-    public var cgImageRepresentation: CGImage? {
-        #if os(macOS)
-        return cgImage(forProposedRect: nil, context: nil, hints: nil)
-        #else
-        return cgImage
-        #endif
-    }
-}
-
-// MARK: - ImageHelpers
-
-public struct ImageHelpers {
-
-    // MARK: - Cross-Platform Methods
-
-    /// Convert a platform image to PNG data
-    public static func convertImageToData(_ image: PlatformImage) throws -> Data {
-        guard let data = image.pngData() else {
-            throw ImageError.conversionFailed
-        }
-        return data
-    }
-
-    /// Load image data from a URL
-    public static func loadImageData(from url: URL) throws -> Data {
-        #if os(macOS)
-        guard let image = NSImage(contentsOf: url) else {
-            throw ImageError.invalidImage
-        }
-        #else
-        guard let data = try? Data(contentsOf: url),
-              let image = UIImage(data: data) else {
-            throw ImageError.invalidImage
-        }
-        #endif
-        return try convertImageToData(image)
-    }
-
-    /// Load image data from a file path
-    public static func loadImageData(from path: String) throws -> Data {
-        let url = URL(fileURLWithPath: path)
-        return try loadImageData(from: url)
-    }
-
-    /// Convert Data to a platform image
-    public static func dataToImage(_ data: Data) throws -> PlatformImage {
-        guard let image = PlatformImage.fromData(data) else {
-            throw ImageError.invalidData
-        }
-        return image
-    }
-
-    /// Save a platform image to a file in the specified format.
-    ///
-    /// - Parameters:
-    ///   - image: The image to save
-    ///   - url: The destination file URL
-    ///   - format: The output format (.png or .jpeg)
-    ///   - jpegQuality: JPEG compression quality (0.0-1.0), only used for .jpeg format
-    public static func saveImage(_ image: PlatformImage, to url: URL, format: ImageFormat = .png, jpegQuality: Float = 0.9) throws {
-        let cgImage: CGImage
-        #if os(macOS)
-        guard let img = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            throw ImageError.conversionFailed
-        }
-        cgImage = img
-        #else
-        guard let img = image.cgImage else {
-            throw ImageError.conversionFailed
-        }
-        cgImage = img
-        #endif
-
-        let utType = format == .png ? UTType.png.identifier as CFString : UTType.jpeg.identifier as CFString
-        guard let destination = CGImageDestinationCreateWithURL(url as CFURL, utType, 1, nil) else {
-            throw ImageError.conversionFailed
-        }
-
-        var properties: [CFString: Any] = [:]
-        if format == .jpeg {
-            properties[kCGImageDestinationLossyCompressionQuality] = jpegQuality
-        }
-
-        CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
-        guard CGImageDestinationFinalize(destination) else {
-            throw ImageError.conversionFailed
-        }
-    }
-
-    /// Resize an image to the specified size
-    public static func resizeImage(_ image: PlatformImage, to size: CGSize) -> PlatformImage {
-        #if os(macOS)
-        let newImage = NSImage(size: size)
-        newImage.lockFocus()
-        image.draw(in: NSRect(origin: .zero, size: size))
-        newImage.unlockFocus()
-        return newImage
-        #else
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
-        }
-        #endif
-    }
-
-    /// Scale image to fit within canvas dimensions while preserving aspect ratio
-    /// Fills empty space with the specified background color, or leaves transparent if backgroundColor is nil
-    public static func scaleImageToCanvas(_ image: PlatformImage, canvasWidth: Int, canvasHeight: Int, backgroundColor: PlatformColor?) -> PlatformImage {
-        let canvasSize = CGSize(width: canvasWidth, height: canvasHeight)
-
-        #if os(macOS)
-        let imageSize = image.size
-        #else
-        let imageSize = image.size
-        #endif
-
-        // Calculate aspect ratios
-        let canvasAspect = CGFloat(canvasWidth) / CGFloat(canvasHeight)
-        let imageAspect = imageSize.width / imageSize.height
-
-        // Calculate scaled size that fits within canvas while preserving aspect ratio
-        var scaledSize: CGSize
-        if imageAspect > canvasAspect {
-            // Image is wider than canvas - fit to width
-            scaledSize = CGSize(width: canvasSize.width, height: canvasSize.width / imageAspect)
-        } else {
-            // Image is taller than canvas - fit to height
-            scaledSize = CGSize(width: canvasSize.height * imageAspect, height: canvasSize.height)
-        }
-
-        // Center the scaled image on the canvas
-        let x = (canvasSize.width - scaledSize.width) / 2
-        let y = (canvasSize.height - scaledSize.height) / 2
-
-        // Check if the image fills the entire canvas (no background needed)
-        let imageFillsCanvas = abs(scaledSize.width - canvasSize.width) < 0.5 &&
-                               abs(scaledSize.height - canvasSize.height) < 0.5
-
-        DTLogger.debug("🔍 scaleImageToCanvas: image=\(imageSize), canvas=\(canvasSize), scaled=\(scaledSize), fills=\(imageFillsCanvas)", category: .images)
-
-        // If image fills canvas completely, no need to create new canvas with background
-        if imageFillsCanvas {
-            // Just resize the image if needed
-            if abs(imageSize.width - canvasSize.width) < 0.5 &&
-               abs(imageSize.height - canvasSize.height) < 0.5 {
-                DTLogger.debug("✅ Image already correct size, returning original", category: .images)
-                return image
-            } else {
-                DTLogger.debug("✅ Resizing image without background", category: .images)
-                return resizeImage(image, to: canvasSize)
-            }
-        }
-
-        DTLogger.debug("⚠️ Image needs letterboxing, adding background", category: .images)
-
-        #if os(macOS)
-        let canvas = NSImage(size: canvasSize)
-        canvas.lockFocus()
-
-        // Fill background if color is provided, otherwise leave transparent
-        if let backgroundColor = backgroundColor {
-            backgroundColor.setFill()
-            NSRect(origin: .zero, size: canvasSize).fill()
-        } else {
-            NSColor.clear.setFill()
-            NSRect(origin: .zero, size: canvasSize).fill()
-        }
-
-        // Draw scaled image centered
-        image.draw(in: NSRect(x: x, y: y, width: scaledSize.width, height: scaledSize.height))
-
-        canvas.unlockFocus()
-        return canvas
-        #else
-        let renderer = UIGraphicsImageRenderer(size: canvasSize)
-        return renderer.image { context in
-            // Fill background if color is provided
-            if let backgroundColor = backgroundColor {
-                backgroundColor.setFill()
-                context.fill(CGRect(origin: .zero, size: canvasSize))
-            }
-
-            // Draw scaled image centered
-            image.draw(in: CGRect(x: x, y: y, width: scaledSize.width, height: scaledSize.height))
-        }
-        #endif
-    }
-
-    // MARK: - DTTensor Conversion
-
-    /// Convert a platform image to DTTensor format for Draw Things
-    /// - Parameters:
-    ///   - image: The source image
-    ///   - forceRGB: If true, always output 3 channels (RGB) even if image has transparency
-    /// - Returns: DTTensor data
-    public static func imageToDTTensor(_ image: PlatformImage, forceRGB: Bool = false) throws -> Data {
-        guard let cgImage = image.cgImageRepresentation else {
-            throw ImageError.invalidImage
-        }
-        return try imageToDTTensor(cgImage, forceRGB: forceRGB)
-    }
-
-    /// Convert Sendable Core Graphics pixels to DTTensor format. This is the
-    /// executor-neutral primitive used by queues that must keep full-image
-    /// conversion off their UI actor.
-    public static func imageToDTTensor(_ cgImage: CGImage, forceRGB: Bool = false) throws -> Data {
-        let width = cgImage.width
-        let height = cgImage.height
-
-        // Create RGBA bitmap context
-        let bytesPerRow = width * 4
-        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                data: &pixelData,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: bytesPerRow,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-              ) else {
-            throw ImageError.conversionFailed
-        }
-
-        // Draw the image into our buffer (RGBA format)
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        // Check if image has any transparency
-        var hasTransparency = false
-        if !forceRGB {
-            outerLoop: for y in 0..<height {
-                for x in 0..<width {
-                    let pixelIndex = y * bytesPerRow + x * 4
-                    let alpha = pixelData[pixelIndex + 3] // Alpha is last in RGBA
-                    if alpha < 255 {
-                        hasTransparency = true
-                        break outerLoop
-                    }
-                }
-            }
-        }
-
-        let channels = (hasTransparency && !forceRGB) ? 4 : 3
-
-        DTLogger.debug("🖼️ Converting image: \(width)x\(height), \(channels) channels, hasTransparency: \(hasTransparency), forceRGB: \(forceRGB)", category: .images)
-
-        // DTTensor format constants
-        let CCV_TENSOR_CPU_MEMORY: UInt32 = 0x1
-        let CCV_TENSOR_FORMAT_NHWC: UInt32 = 0x02
-        let CCV_16F: UInt32 = 0x20000
-
-        // Create header (17 uint32 values = 68 bytes)
-        var header = [UInt32](repeating: 0, count: 17)
-        header[0] = 0  // No compression
-        header[1] = CCV_TENSOR_CPU_MEMORY
-        header[2] = CCV_TENSOR_FORMAT_NHWC
-        header[3] = CCV_16F
-        header[4] = 0
-        header[5] = 1  // N dimension
-        header[6] = UInt32(height)
-        header[7] = UInt32(width)
-        header[8] = UInt32(channels)
-
-        var tensorData = Data(count: 68 + width * height * channels * 2)
-
-        // Write header
-        tensorData.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) in
-            let uint32Ptr = ptr.baseAddress!.assumingMemoryBound(to: UInt32.self)
-            for i in 0..<9 {
-                uint32Ptr[i] = header[i]
-            }
-        }
-
-        // Convert RGBA pixel data to float16 tensor data in range [-1, 1]
-        tensorData.withUnsafeMutableBytes { (outPtr: UnsafeMutableRawBufferPointer) in
-            let tensorPixelPtr = outPtr.baseAddress!.advanced(by: 68)
-
-            for y in 0..<height {
-                for x in 0..<width {
-                    let rgbaIndex = y * bytesPerRow + x * 4
-
-                    for c in 0..<channels {
-                        let uint8Value = pixelData[rgbaIndex + c]
-                        let floatValue: Float = (Float(uint8Value) / 255.0 * 2.0) - 1.0
-                        let bitPattern: UInt16 = floatToFloat16Bits(floatValue)
-
-                        let byteOffset = (y * width + x) * channels * 2 + c * 2
-                        tensorPixelPtr.storeBytes(of: UInt8(bitPattern & 0xFF), toByteOffset: byteOffset, as: UInt8.self)
-                        tensorPixelPtr.storeBytes(of: UInt8((bitPattern >> 8) & 0xFF), toByteOffset: byteOffset + 1, as: UInt8.self)
-                    }
-                }
-            }
-        }
-
-        DTLogger.debug("✅ DTTensor created: \(tensorData.count) bytes", category: .images)
-
-        return tensorData
-    }
-
-    /// Convert DTTensor data to a platform image
-    /// - Parameters:
-    ///   - tensorData: The DTTensor data from Draw Things
-    ///   - modelFamily: Optional model family for correct latent-to-RGB conversion (defaults to .flux for 16-channel)
-    /// - Returns: A platform image
-    public static func dtTensorToImage(_ tensorData: Data, modelFamily: ModelFamily? = nil) throws -> PlatformImage {
-        PlatformImage.fromCGImage(try dtTensorToCGImage(tensorData, modelFamily: modelFamily))
-    }
-
-    /// Convert DTTensor data (a decoded image or a preview latent) to a `CGImage`.
-    ///
-    /// This is the executor-neutral primitive behind ``dtTensorToImage(_:modelFamily:)``;
-    /// `CGImage` is `Sendable`, so it is safe to call off the main actor.
-    public static func dtTensorToCGImage(_ tensorData: Data, modelFamily: ModelFamily? = nil) throws -> CGImage {
-        guard tensorData.count >= 68 else {
-            throw ImageError.invalidData
-        }
-
-        // Decompress if needed (handles deflate and fpzip compression)
-        let tensorData = try TensorDecompression.decompressIfNeeded(tensorData)
-
-        // Read header
-        var header = [UInt32](repeating: 0, count: 17)
-        tensorData.prefix(68).withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
-            let uint32Ptr = ptr.bindMemory(to: UInt32.self)
-            for i in 0..<17 {
-                header[i] = uint32Ptr[i]
-            }
-        }
-
-        let format = header[2]  // 0x02 = NHWC, other = NCHW
-        var height = Int(header[6])
-        let width = Int(header[7])
-        let channels = Int(header[8])
-        let dim0 = Int(header[5])
-        let isNHWC = (format == 0x02)
-
-        // Audio latent rows are packed below the video latent in preview latents only; decoded
-        // RGB (3-channel) and RGBA (4-channel) frames have no audio rows and must not be cropped.
-        let isLatent = channels > 4
-
-        // For LTX-2 preview latents, strip audio latent rows from the bottom
-        let family = modelFamily ?? .unknown
-        if (family == .ltx2 || family == .ltx23) && isLatent && dim0 > 0 && width > 0 {
-            let (_, audioHeight) = ltx2ExtractAudioFramesAndHeight(
-                dim0: dim0, height: height, width: width
-            )
-            if audioHeight > 0 && audioHeight < height {
-                DTLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from LTX-2 preview (height \(height) -> \(height - audioHeight))", category: .images)
-                height -= audioHeight
-            }
-        }
-
-        // MiniMax H3 packs audio latent rows below its 24-channel video latent in the same way.
-        // Key on the channel count so a 24-channel latent is handled even without a family hint.
-        if channels == 24 && dim0 > 0 && width > 0 {
-            let audioHeight = minimaxH3AudioHeight(videoLatentFrames: dim0, latentWidth: width)
-            if audioHeight > 0 && audioHeight < height {
-                DTLogger.debug("dtTensorToImage: stripping \(audioHeight) audio latent rows from MiniMax H3 preview (height \(height) -> \(height - audioHeight))", category: .images)
-                height -= audioHeight
-            }
-        }
-
-        // HiDream-O1 uses a patch-packed latent (3 × 32 × 32 channels) decoded into an
-        // image 32× larger per side, not a coefficient matrix. Handle it before the
-        // standard channel guard, keyed on the family or the distinctive channel count.
-        if family == .hiDreamO1 || channels == 3 * 32 * 32 {
-            DTLogger.debug("dtTensorToImage: using HiDream-O1 patch-based conversion", category: .images)
-            return try hiDreamO1PatchToCGImage(tensorData, imageWidth: width, imageHeight: height, channels: channels)
-        }
-
-        // Models with a transparent (RGBA) decoder, such as Qwen Image 2.1, return final images as
-        // 4-channel ARGB tensors. For a family whose latent isn't 4-channel, a 4-channel tensor
-        // can only be decoded pixels, so it must not go through the 4-channel latent conversion.
-        if channels == 4 && family != .unknown && family.latentChannels != 4 {
-            DTLogger.debug("dtTensorToImage: using 4-channel ARGB conversion (family=\(family))", category: .images)
-            return try argbTensorToCGImage(tensorData, width: width, height: height, isNHWC: isNHWC)
-        }
-
-        guard channels == 3 || channels == 4 || channels == 16 || channels == 24 || channels == 32 || channels == 48 || channels == 64 else {
-            DTLogger.error("dtTensorToImage: unsupported channel count \(channels)", category: .images)
-            throw ImageError.conversionFailed
-        }
-
-        let pixelDataOffset = 68
-        let expectedDataSize = pixelDataOffset + (width * height * channels * 2)
-
-        guard tensorData.count >= expectedDataSize else {
-            throw ImageError.invalidData
-        }
-
-        DTLogger.debug("dtTensorToImage: \(width)x\(height), \(channels) channels, modelFamily=\(modelFamily?.rawValue ?? "nil")", category: .images)
-
-        // Output RGB data
-        var rgbData = Data(count: width * height * 3)
-
-        tensorData.withUnsafeBytes { (rawPtr: UnsafeRawBufferPointer) in
-            let basePtr = rawPtr.baseAddress!.advanced(by: pixelDataOffset)
-            let float16Ptr = basePtr.assumingMemoryBound(to: UInt16.self)
-
-            rgbData.withUnsafeMutableBytes { (outPtr: UnsafeMutableRawBufferPointer) in
-                let uint8Ptr = outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
-
-                if channels == 64 {
-                    // 64-channel latent space to RGB (Qwen Image 2.1 coefficients)
-                    DTLogger.debug("dtTensorToImage: using 64-channel Qwen Image 2.1 conversion", category: .images)
-                    convertQwen21ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                } else if channels == 48 {
-                    // 48-channel latent space to RGB (Wan 2.2 5B coefficients)
-                    DTLogger.debug("dtTensorToImage: using 48-channel Wan 2.2 conversion", category: .images)
-                    convert48ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                } else if channels == 24 {
-                    // 24-channel latent space to RGB (MiniMax H3 coefficients)
-                    DTLogger.debug("dtTensorToImage: using 24-channel MiniMax H3 conversion", category: .images)
-                    convertMiniMaxH3ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                } else if channels == 32 {
-                    // 32-channel latent space to RGB (Flux 2 coefficients)
-                    DTLogger.debug("dtTensorToImage: using 32-channel Flux 2 conversion", category: .images)
-                    convertFlux2ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                } else if channels == 16 {
-                    // 16-channel latent space to RGB - use model-specific coefficients
-                    let family = modelFamily ?? .flux
-                    switch family {
-                    case .qwen, .wan21, .longcatVideoAvatar:
-                        DTLogger.debug("dtTensorToImage: using Qwen/Wan21 16-channel conversion", category: .images)
-                        convertQwenWan21ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .sd3:
-                        DTLogger.debug("dtTensorToImage: using SD3 16-channel conversion", category: .images)
-                        convertSD3ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .hunyuanVideo:
-                        DTLogger.debug("dtTensorToImage: using HunyuanVideo 16-channel conversion", category: .images)
-                        convertHunyuanVideoToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .ltx2, .ltx23:
-                        // LTX-2/2.3 uses Flux-like coefficients as a reasonable fallback
-                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion for LTX fallback", category: .images)
-                        convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .flux, .zImage, .unknown:
-                        // Z Image uses Flux-like latent space
-                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion (family=\(family))", category: .images)
-                        convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    default:
-                        // Default to Flux coefficients for other 16-channel models
-                        DTLogger.debug("dtTensorToImage: using Flux 16-channel conversion (default for \(family))", category: .images)
-                        convertFluxToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    }
-                } else if channels == 4 {
-                    // 4-channel latent space to RGB - coefficients differ by family.
-                    switch family {
-                    case .sd1:
-                        // SD 1.x / 2.x / SVD use a distinct matrix from SDXL.
-                        DTLogger.debug("dtTensorToImage: using 4-channel SD1 conversion", category: .images)
-                        convertSD1ToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .kandinsky:
-                        DTLogger.debug("dtTensorToImage: using 4-channel Kandinsky (OKLab) conversion", category: .images)
-                        convertKandinskyToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    case .wurstchen:
-                        DTLogger.debug("dtTensorToImage: using 4-channel Würstchen conversion", category: .images)
-                        convertWurstchenToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    default:
-                        // SDXL / SSD-1B / PixArt / AuraFlow / unknown.
-                        DTLogger.debug("dtTensorToImage: using 4-channel SDXL conversion (family=\(family))", category: .images)
-                        convert4ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height)
-                    }
-                } else {
-                    // 3-channel RGB: Convert from [-1, 1] to [0, 255]
-                    if isNHWC {
-                        convert3ChannelToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, pixelCount: width * height * channels)
-                    } else {
-                        // NCHW (planar): channels are stored as [R...R, G...G, B...B]
-                        convert3ChannelNCHWToRGB(float16Ptr: float16Ptr, uint8Ptr: uint8Ptr, width: width, height: height)
-                    }
-                }
-            }
-        }
-
-        return try makeRGBCGImage(rgbData, width: width, height: height)
-    }
-
+extension ImageHelpers {
     // MARK: - LTX-2 Audio Latent Stripping
 
     /// Compute the number of audio frames and audio latent height for LTX-2 tensors.
@@ -562,7 +20,7 @@ public struct ImageHelpers {
     /// Ports the upstream `LTX2ExtractAudioFramesAndHeight` function.
     /// Audio latent rows are appended at the bottom of the video latent tensor
     /// and must be stripped before preview conversion.
-    private static func ltx2ExtractAudioFramesAndHeight(
+    static func ltx2ExtractAudioFramesAndHeight(
         dim0: Int, height: Int, width: Int
     ) -> (audioFrames: Int, audioHeight: Int) {
         let audioFrames = (dim0 - 1) * 8 + 1
@@ -601,14 +59,14 @@ public struct ImageHelpers {
 
     /// Helper to convert Float16 bit pattern to Float - works on all platforms
     @inline(__always)
-    private static func f16ToFloat(_ ptr: UnsafePointer<UInt16>, _ index: Int) -> Float {
+    static func f16ToFloat(_ ptr: UnsafePointer<UInt16>, _ index: Int) -> Float {
         let bits: UInt16 = ptr[index]
         return float16BitsToFloat(bits)
     }
 
     /// Convert Float16 bit pattern to Float32 manually (platform-independent)
     @inline(__always)
-    private static func float16BitsToFloat(_ h: UInt16) -> Float {
+    static func float16BitsToFloat(_ h: UInt16) -> Float {
         let sign = UInt32((h >> 15) & 0x1)
         let exponent = UInt32((h >> 10) & 0x1F)
         let mantissa = UInt32(h & 0x3FF)
@@ -643,7 +101,7 @@ public struct ImageHelpers {
 
     /// Convert Float32 to Float16 bit pattern manually (platform-independent)
     @inline(__always)
-    private static func floatToFloat16Bits(_ f: Float) -> UInt16 {
+    static func floatToFloat16Bits(_ f: Float) -> UInt16 {
         let bits = f.bitPattern
         let sign = UInt16((bits >> 31) & 0x1)
         let exponent = Int32((bits >> 23) & 0xFF)
@@ -675,7 +133,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 4-channel SDXL latent to RGB
-    private static func convert4ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convert4ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 4
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -696,7 +154,7 @@ public struct ImageHelpers {
     /// Convert 4-channel SD 1.x / 2.x / SVD latent to RGB.
     ///
     /// These use a different matrix than SDXL (upstream `v1`/`v2`/`svd_i2v` case).
-    private static func convertSD1ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertSD1ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 4
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -715,7 +173,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 4-channel Würstchen / Stable Cascade latent to RGB.
-    private static func convertWurstchenToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertWurstchenToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 4
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -734,7 +192,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 4-channel Kandinsky 2.1 latent to RGB via the OKLab color space.
-    private static func convertKandinskyToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertKandinskyToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 4
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -759,7 +217,7 @@ public struct ImageHelpers {
 
     /// Convert OKLab to linear sRGB. Ports the upstream `OKlabToLinearsRGB`.
     @inline(__always)
-    private static func okLabToLinearSRGB(L: Float, a: Float, b: Float) -> (Float, Float, Float) {
+    static func okLabToLinearSRGB(L: Float, a: Float, b: Float) -> (Float, Float, Float) {
         let l_ = L + 0.3963377774 * a + 0.2158037573 * b
         let m_ = L - 0.1055613458 * a - 0.0638541728 * b
         let s_ = L - 0.0894841775 * a - 1.2914855480 * b
@@ -775,7 +233,7 @@ public struct ImageHelpers {
 
     /// Convert linear sRGB to sRGB. Ports the upstream `linearsRGBTosRGB`.
     @inline(__always)
-    private static func linearSRGBToSRGB(_ x: Float) -> Float {
+    static func linearSRGBToSRGB(_ x: Float) -> Float {
         if x >= 0.04045 {
             return pow((x + 0.055) / (1 + 0.055), 2.4)
         } else {
@@ -788,7 +246,7 @@ public struct ImageHelpers {
     /// HiDream-O1 packs each 32×32 output patch into the channel dimension
     /// (channels = 3 × 32 × 32 = 3072), so the decoded image is 32× larger per side.
     /// Ports the upstream patch-unpacking preview path.
-    private static func hiDreamO1PatchToCGImage(_ tensorData: Data, imageWidth: Int, imageHeight: Int, channels: Int) throws -> CGImage {
+    static func hiDreamO1PatchToCGImage(_ tensorData: Data, imageWidth: Int, imageHeight: Int, channels: Int) throws -> CGImage {
         let patchSize = 32
         guard channels == 3 * patchSize * patchSize else {
             DTLogger.error("hiDreamO1PatchToImage: unexpected channel count \(channels), expected \(3 * patchSize * patchSize)", category: .images)
@@ -840,7 +298,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 3-channel RGB from [-1, 1] to [0, 255] (NHWC / interleaved layout)
-    private static func convert3ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convert3ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let floatValue = f16ToFloat(float16Ptr, i)
             let uint8Value = UInt8(clamping: Int(floatValue.isFinite ? (floatValue + 1.0) * 127.5 : 127.5))
@@ -850,7 +308,7 @@ public struct ImageHelpers {
 
     /// Convert 3-channel RGB from [-1, 1] to [0, 255] (NCHW / planar layout)
     /// Planar data is stored as [R0..RN, G0..GN, B0..BN] and must be interleaved to [R0,G0,B0, R1,G1,B1, ...]
-    private static func convert3ChannelNCHWToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, width: Int, height: Int) {
+    static func convert3ChannelNCHWToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, width: Int, height: Int) {
         let pixelCount = width * height
         for i in 0..<pixelCount {
             let rVal = f16ToFloat(float16Ptr, i)
@@ -863,7 +321,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 16-channel Flux latent to RGB
-    private static func convertFluxToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertFluxToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 16
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -908,7 +366,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 16-channel SD3 latent to RGB
-    private static func convertSD3ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertSD3ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 16
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -953,7 +411,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 16-channel HunyuanVideo latent to RGB
-    private static func convertHunyuanVideoToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertHunyuanVideoToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 16
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -998,7 +456,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 16-channel Qwen/Wan 2.1 latent to RGB
-    private static func convertQwenWan21ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertQwenWan21ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 16
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -1076,7 +534,7 @@ public struct ImageHelpers {
     ]
 
     /// Convert 64-channel Qwen Image 2.1 latent to RGB
-    private static func convertQwen21ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertQwen21ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 64
             var rVal: Float = -0.1228
@@ -1099,7 +557,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 32-channel Flux 2 latent to RGB
-    private static func convertFlux2ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertFlux2ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 32
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -1173,7 +631,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 24-channel MiniMax H3 latent to RGB (upstream preview coefficients)
-    private static func convertMiniMaxH3ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convertMiniMaxH3ToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             let base = i * 24
             let v0 = f16ToFloat(float16Ptr, base + 0)
@@ -1235,7 +693,7 @@ public struct ImageHelpers {
     }
 
     /// Convert 48-channel Wan 2.2 5B latent to RGB
-    private static func convert48ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
+    static func convert48ChannelToRGB(float16Ptr: UnsafePointer<UInt16>, uint8Ptr: UnsafeMutablePointer<UInt8>, pixelCount: Int) {
         for i in 0..<pixelCount {
             // Read all 48 channels
             let base = i * 48
@@ -1338,299 +796,4 @@ public struct ImageHelpers {
     }
 
     /// Wraps packed 8-bit RGB pixels in a `CGImage`.
-    private static func makeRGBCGImage(_ rgbData: Data, width: Int, height: Int) throws -> CGImage {
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let provider = CGDataProvider(data: rgbData as CFData),
-              let cgImage = CGImage(
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bitsPerPixel: 24,
-                bytesPerRow: width * 3,
-                space: colorSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: true,
-                intent: .defaultIntent
-              ) else {
-            throw ImageError.conversionFailed
-        }
-        return cgImage
-    }
-
-    /// Convert a 4-channel ARGB pixel tensor (as produced by Draw Things' transparent decoders) to an RGBA image.
-    ///
-    /// Channel 0 is alpha in [0, 1]; channels 1...3 are RGB in [-1, 1]. Mirrors upstream
-    /// `ImageConverter.imageAndMask(from:)` / the transparent `FirstStage` decode.
-    private static func argbTensorToCGImage(_ tensorData: Data, width: Int, height: Int, isNHWC: Bool) throws -> CGImage {
-        let pixelDataOffset = 68
-        let pixelCount = width * height
-        guard pixelCount > 0, tensorData.count >= pixelDataOffset + pixelCount * 4 * 2 else {
-            throw ImageError.invalidData
-        }
-
-        var rgbaData = Data(count: pixelCount * 4)
-        tensorData.withUnsafeBytes { (rawPtr: UnsafeRawBufferPointer) in
-            let float16Ptr = rawPtr.baseAddress!.advanced(by: pixelDataOffset).assumingMemoryBound(to: UInt16.self)
-            rgbaData.withUnsafeMutableBytes { (outPtr: UnsafeMutableRawBufferPointer) in
-                let uint8Ptr = outPtr.baseAddress!.assumingMemoryBound(to: UInt8.self)
-                // NHWC: [A, R, G, B] per pixel; NCHW: planar [A...A, R...R, G...G, B...B]
-                let (pixelStride, channelStride) = isNHWC ? (4, 1) : (1, pixelCount)
-                for i in 0..<pixelCount {
-                    let base = i * pixelStride
-                    let a = f16ToFloat(float16Ptr, base)
-                    let r = f16ToFloat(float16Ptr, base + channelStride)
-                    let g = f16ToFloat(float16Ptr, base + 2 * channelStride)
-                    let b = f16ToFloat(float16Ptr, base + 3 * channelStride)
-                    uint8Ptr[i * 4 + 0] = UInt8(clamping: Int(r.isFinite ? (r + 1.0) * 127.5 : 127.5))
-                    uint8Ptr[i * 4 + 1] = UInt8(clamping: Int(g.isFinite ? (g + 1.0) * 127.5 : 127.5))
-                    uint8Ptr[i * 4 + 2] = UInt8(clamping: Int(b.isFinite ? (b + 1.0) * 127.5 : 127.5))
-                    uint8Ptr[i * 4 + 3] = UInt8(clamping: Int((a.isFinite ? a : 1.0) * 255.0 + 0.5))
-                }
-            }
-        }
-
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let provider = CGDataProvider(data: rgbaData as CFData),
-              let cgImage = CGImage(
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bitsPerPixel: 32,
-                bytesPerRow: width * 4,
-                space: colorSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: true,
-                intent: .defaultIntent
-              ) else {
-            throw ImageError.conversionFailed
-        }
-        return cgImage
-    }
-
-    // MARK: - Transparency Helpers
-
-    /// Check if an image has any transparent pixels
-    public static func hasTransparency(_ image: PlatformImage) -> Bool {
-        guard let cgImage = image.cgImageRepresentation else {
-            return false
-        }
-
-        // Check if the image has an alpha channel
-        let alphaInfo = cgImage.alphaInfo
-        guard alphaInfo != .none && alphaInfo != .noneSkipFirst && alphaInfo != .noneSkipLast else {
-            DTLogger.debug("🔍 hasTransparency: Image has no alpha channel, returning false", category: .images)
-            return false
-        }
-
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerRow = width * 4
-        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                data: &pixelData,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: bytesPerRow,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-              ) else {
-            return false
-        }
-
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        // Check if any pixel has alpha < 255
-        for y in 0..<height {
-            for x in 0..<width {
-                let pixelIndex = y * bytesPerRow + x * 4
-                let alpha = pixelData[pixelIndex + 3] // Alpha is last in RGBA
-                if alpha < 255 {
-                    DTLogger.debug("🔍 hasTransparency: Found transparent pixel at (\(x), \(y)), alpha=\(alpha)", category: .images)
-                    return true
-                }
-            }
-        }
-
-        DTLogger.debug("🔍 hasTransparency: All pixels are opaque", category: .images)
-        return false
-    }
-
-    /// Fill transparent areas of an image with a fill color
-    public static func fillTransparentAreas(_ image: PlatformImage, fillColor: PlatformColor) -> PlatformImage {
-        #if os(macOS)
-        let size = image.size
-        let filled = NSImage(size: size)
-        filled.lockFocus()
-
-        fillColor.setFill()
-        NSRect(origin: .zero, size: size).fill()
-        image.draw(in: NSRect(origin: .zero, size: size))
-
-        filled.unlockFocus()
-        return filled
-        #else
-        let size = image.size
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { context in
-            fillColor.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            image.draw(in: CGRect(origin: .zero, size: size))
-        }
-        #endif
-    }
-
-    // MARK: - Mask Creation
-
-    /// Creates an inpainting mask from an image's alpha channel
-    public static func createMaskFromAlpha(_ image: PlatformImage) throws -> Data {
-        guard let cgImage = image.cgImageRepresentation else {
-            throw ImageError.invalidImage
-        }
-        return try createMaskFromAlpha(cgImage)
-    }
-
-    /// Creates an inpainting mask from an image's alpha channel: transparent pixels are
-    /// regenerated, opaque pixels are kept.
-    public static func createMaskFromAlpha(_ cgImage: CGImage) throws -> Data {
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerRow = width * 4
-        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                data: &pixelData,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: bytesPerRow,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-              ) else {
-            throw ImageError.conversionFailed
-        }
-
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        // Create mask with Draw Things mask format
-        var maskData = Data(count: 68 + width * height)
-
-        // Write mask header
-        maskData.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) in
-            let int32Ptr = ptr.baseAddress!.assumingMemoryBound(to: Int32.self)
-            int32Ptr[0] = 0
-            int32Ptr[1] = 1
-            int32Ptr[2] = 1
-            int32Ptr[3] = 4096
-            int32Ptr[4] = 0
-            int32Ptr[5] = Int32(height)
-            int32Ptr[6] = Int32(width)
-            int32Ptr[7] = 0
-            int32Ptr[8] = 0
-        }
-
-        // Write mask data
-        maskData.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) in
-            let maskPtr = ptr.baseAddress!.advanced(by: 68).assumingMemoryBound(to: UInt8.self)
-
-            for y in 0..<height {
-                for x in 0..<width {
-                    let pixelIndex = y * bytesPerRow + x * 4
-                    let alpha = pixelData[pixelIndex + 3] // Alpha is last in RGBA
-
-                    // Transparent (alpha < 255) = 2 (inpaint)
-                    // Opaque (alpha = 255) = 0 (preserve)
-                    let maskValue: UInt8 = alpha < 255 ? 2 : 0
-                    maskPtr[y * width + x] = maskValue
-                }
-            }
-        }
-
-        DTLogger.debug("🎭 Created inpainting mask from alpha channel: \(width)x\(height), size: \(maskData.count) bytes", category: .images)
-
-        return maskData
-    }
-
-    // MARK: - Legacy NSImage Methods (macOS only)
-
-    #if os(macOS)
-    @available(*, deprecated, renamed: "imageToDTTensor")
-    public static func nsImageToDTTensor(_ image: NSImage, forceRGB: Bool = false) throws -> Data {
-        return try imageToDTTensor(image, forceRGB: forceRGB)
-    }
-
-    @available(*, deprecated, renamed: "dtTensorToImage")
-    public static func dtTensorToNSImage(_ tensorData: Data) throws -> NSImage {
-        return try dtTensorToImage(tensorData)
-    }
-
-    @available(*, deprecated, renamed: "dataToImage")
-    public static func dataToNSImage(_ data: Data) throws -> NSImage {
-        return try dataToImage(data)
-    }
-
-    public static func createMaskFromImage(_ image: NSImage, threshold: Float = 0.5) throws -> Data {
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else {
-            throw ImageError.invalidImage
-        }
-
-        let width = bitmap.pixelsWide
-        let height = bitmap.pixelsHigh
-
-        let maskImage = NSImage(size: NSSize(width: width, height: height))
-        maskImage.lockFocus()
-
-        for y in 0..<height {
-            for x in 0..<width {
-                if let color = bitmap.colorAt(x: x, y: y) {
-                    let gray = Float(color.redComponent * 0.299 + color.greenComponent * 0.587 + color.blueComponent * 0.114)
-                    let maskValue = gray > threshold ? 1.0 : 0.0
-                    NSColor(white: CGFloat(maskValue), alpha: 1.0).setFill()
-                    NSRect(x: x, y: y, width: 1, height: 1).fill()
-                }
-            }
-        }
-
-        maskImage.unlockFocus()
-
-        return try convertImageToData(maskImage)
-    }
-    #endif
-}
-
-// MARK: - Image Format
-
-public enum ImageFormat: Sendable {
-    case png
-    case jpeg
-}
-
-// MARK: - Image Errors
-
-public enum ImageError: Error, LocalizedError {
-    case invalidImage
-    case invalidData
-    case conversionFailed
-    case fileNotFound
-
-    public var errorDescription: String? {
-        switch self {
-        case .invalidImage:
-            return "Invalid image format or corrupted image"
-        case .invalidData:
-            return "Invalid image data"
-        case .conversionFailed:
-            return "Failed to convert image to desired format"
-        case .fileNotFound:
-            return "Image file not found"
-        }
-    }
 }

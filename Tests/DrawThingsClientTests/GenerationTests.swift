@@ -144,4 +144,87 @@ struct ImageTensorTests {
         #expect((127...128).contains(pixels[1]))
         #expect(pixels[2] == 0)
     }
+
+    private func solidImage(width: Int, height: Int, gray: CGFloat, alpha: CGFloat = 1) throws -> CGImage {
+        let context = try #require(CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.setFillColor(CGColor(srgbRed: gray, green: gray, blue: gray, alpha: alpha))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return try #require(context.makeImage())
+    }
+
+    private func payloadHalves(_ tensor: Data) -> [Float16] {
+        tensor.dropFirst(68).withUnsafeBytes { raw in
+            (0..<(raw.count / 2)).map { Float16(bitPattern: raw.loadUnaligned(fromByteOffset: $0 * 2, as: UInt16.self)) }
+        }
+    }
+
+    @Test func encoderMapsBytesToMinusOneToOne() throws {
+        #expect(payloadHalves(try ImageHelpers.imageToDTTensor(solidImage(width: 2, height: 2, gray: 0), forceRGB: true)).allSatisfy { $0 == -1 })
+        #expect(payloadHalves(try ImageHelpers.imageToDTTensor(solidImage(width: 2, height: 2, gray: 1), forceRGB: true)).allSatisfy { $0 == 1 })
+    }
+
+    @Test func encoderHeaderAndTransparency() throws {
+        let opaque = try ImageHelpers.imageToDTTensor(solidImage(width: 5, height: 3, gray: 0.5))
+        let transparent = try ImageHelpers.imageToDTTensor(solidImage(width: 5, height: 3, gray: 0.5, alpha: 0.5))
+        let forced = try ImageHelpers.imageToDTTensor(solidImage(width: 5, height: 3, gray: 0.5, alpha: 0.5), forceRGB: true)
+        func dims(_ data: Data) -> [UInt32] { data.withUnsafeBytes { raw in (5...8).map { raw.loadUnaligned(fromByteOffset: $0 * 4, as: UInt32.self) } } }
+        #expect(dims(opaque) == [1, 3, 5, 3])
+        #expect(dims(transparent) == [1, 3, 5, 4])
+        #expect(dims(forced) == [1, 3, 5, 3])
+        #expect(opaque.count == 68 + 5 * 3 * 3 * 2)
+    }
+
+    @Test func acceleratedDecodeMatchesScalarPath() {
+        // Every Float16 value in and slightly beyond [-1, 1], plus infinities.
+        var values: [UInt16] = stride(from: Float(-1.2), through: 1.2, by: 0.0007).map { Float16($0).bitPattern }
+        values += [Float16.infinity.bitPattern, (-Float16.infinity).bitPattern]
+        var fast = [UInt8](repeating: 0, count: values.count)
+        var scalar = [UInt8](repeating: 0, count: values.count)
+        values.withUnsafeBufferPointer { input in
+            ImageHelpers.convert3ChannelToRGBAccelerated(float16Ptr: input.baseAddress!, uint8Ptr: &fast, count: values.count)
+            ImageHelpers.convert3ChannelToRGB(float16Ptr: input.baseAddress!, uint8Ptr: &scalar, pixelCount: values.count)
+        }
+        // vImage rounds where the scalar path truncates: allow a difference of one level for
+        // finite values. Infinities clamp to black/white instead of the scalar path's mid-gray.
+        let finite = values.count - 2
+        let differences = zip(fast.prefix(finite), scalar.prefix(finite)).enumerated().filter { abs(Int($0.element.0) - Int($0.element.1)) > 1 }
+        #expect(differences.isEmpty, "first mismatches: \(differences.prefix(5).map { (Float(Float16(bitPattern: values[$0.offset])), $0.element.0, $0.element.1) })")
+        #expect(fast[finite] == 255)
+        #expect(fast[finite + 1] == 0)
+    }
+
+    @Test func malformedTensorsThrowInsteadOfCrashing() throws {
+        let valid = try ImageHelpers.imageToDTTensor(solidImage(width: 4, height: 4, gray: 0.3), forceRGB: true)
+        // Truncated payload.
+        #expect(throws: (any Error).self) { try ImageHelpers.dtTensorToCGImage(valid.prefix(100)) }
+        // Hostile dimensions: huge, zero and overflowing.
+        for dims: [UInt32] in [[1, 0xFFFF_FFFF, 0xFFFF_FFFF, 3], [1, 0, 4, 3], [1, 4, 4, 0], [1, 1 << 31, 1 << 31, 64]] {
+            var tensor = valid
+            tensor.withUnsafeMutableBytes { raw in
+                for (index, value) in dims.enumerated() { raw.storeBytes(of: value, toByteOffset: (5 + index) * 4, as: UInt32.self) }
+            }
+            #expect(throws: (any Error).self) { try ImageHelpers.dtTensorToCGImage(tensor) }
+        }
+        // Unsupported compression identifier and a corrupt fpzip payload.
+        for identifier: UInt32 in [0x1234, 0xf7217] {
+            var tensor = valid
+            tensor.withUnsafeMutableBytes { $0.storeBytes(of: identifier, toByteOffset: 0, as: UInt32.self) }
+            #expect(throws: (any Error).self) { try ImageHelpers.dtTensorToCGImage(tensor) }
+        }
+    }
+
+    @Test func misalignedTensorDataDecodes() throws {
+        let tensor = try ImageHelpers.imageToDTTensor(solidImage(width: 3, height: 3, gray: 0.7), forceRGB: true)
+        var shifted = Data([0])
+        shifted.append(tensor)
+        let slice = shifted.dropFirst()  // payload now starts at an odd address
+        let image = try ImageHelpers.dtTensorToCGImage(Data(slice))
+        #expect(image.width == 3)
+        let sliceImage = try ImageHelpers.dtTensorToCGImage(slice)
+        #expect(sliceImage.height == 3)
+    }
 }
