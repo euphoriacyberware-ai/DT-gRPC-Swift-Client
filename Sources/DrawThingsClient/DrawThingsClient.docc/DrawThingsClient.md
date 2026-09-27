@@ -25,6 +25,10 @@ for try await event in service.stream(request) {
 For SwiftUI, ``DrawThingsSession`` mirrors the service's events into observable properties. The
 library itself contains no views; see <doc:BuildingAUserInterface>.
 
+The package's other products build on this one: DrawThingsQueue (`GenerationQueue`, many requests
+in order), DrawThingsVideoKit (`VideoProcessor`, video results to video files) and DrawThingsKit
+(saved servers, the model catalog and configuration state for apps).
+
 ## Topics
 
 ### Essentials

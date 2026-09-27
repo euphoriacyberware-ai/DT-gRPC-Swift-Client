@@ -1,25 +1,34 @@
 <p align="center">
-  <img src="Assets/logo.png" alt="DrawThingsClient Logo" width="200"/>
+  <img src="Assets/logo.png" alt="DrawThings-Swift Logo" width="200"/>
 </p>
 
-# DrawThingsClient
+# DrawThings-Swift
 
-A Swift client for the [Draw Things](https://drawthings.ai) gRPC server, for macOS and iOS apps.
+Swift libraries for apps that generate images, video and audio with a [Draw Things](https://drawthings.ai) gRPC server, on macOS and iOS.
 
-DrawThingsClient speaks the Draw Things gRPC protocol directly. It handles the transport, encodes and decodes Draw Things' tensor image format, serializes configurations, resolves model specifications, and streams progress, previews, images and audio as they are generated. You work with `CGImage`, `NSImage`/`UIImage` and plain Swift types; text-to-image, image-to-image, inpainting, ControlNet, LoRA, video and audio generation are each one async call.
+| Product | What it does |
+|---|---|
+| **DrawThingsClient** | Speaks the Draw Things gRPC protocol: connection and TLS, configurations and Draw Things JSON, model specifications, Draw Things' tensor image format, and a stream of progress, previews, images and audio. `DrawThingsSession` wraps it for SwiftUI. |
+| **DrawThingsQueue** | `GenerationQueue` runs many requests in order, with pause, cancel, retry, reordering and saved queues. |
+| **DrawThingsVideoKit** | `VideoProcessor` turns video results into video files at the model's frame rate, with its audio, optional frame interpolation and super resolution. |
+| **DrawThingsKit** | App state: saved servers and `ConnectionManager`, the server's model catalog plus Draw Things+ models, and the configuration being edited. |
 
-> **Upgrading from 1.x?** Version 2 is a major rework. See [MIGRATING-2.0.md](MIGRATING-2.0.md) and the [CHANGELOG](CHANGELOG.md).
+Only DrawThingsClient is required; add the others as you need them. The libraries contain no views: their state types are `@Observable`, so SwiftUI views update as they change. [Examples/DrawThingsExample](Examples/DrawThingsExample) is a complete app built on all four.
+
+> **Upgrading?** Version 2 is a major rework, and it replaces the separate DrawThingsQueue, DrawThingsVideoKit and DrawThingsKit packages. See [MIGRATING-2.0.md](MIGRATING-2.0.md) and the [CHANGELOG](CHANGELOG.md).
 
 ## Features
 
 - **Swift 6 concurrency**: `Sendable` value types, an actor-based service and an `AsyncThrowingStream` of generation events delivered in server order.
-- **SwiftUI-ready, no views**: an `@Observable` `DrawThingsSession` whose progress and preview update your views. The library itself contains no SwiftUI.
+- **SwiftUI-ready, no views**: `@Observable` session, queue, video processor and app state that SwiftUI views observe directly.
 - **Cancellation**: cancelling the task (or leaving the event loop) cancels the generation on the server.
 - **Video and audio**: frames, generated audio (`GeneratedAudio`, with WAV export) and each model's frame rate and audio sample rate.
 - **Draw Things JSON**: read and write the app's configuration JSON, including its "Copy Configuration" output.
 - **Model specifications**: the specs servers need for newer models come from the server, a snapshot bundled with the package, or (opt-in) the live Draw Things list; no network request by default.
 - **Safe with untrusted data**: tensor headers, compressed payloads and configuration values are validated; bad data throws instead of crashing.
 - **TLS**: verifies public servers and accepts the self-signed certificates Draw Things uses on local networks.
+- **Queues that survive a relaunch**: pending jobs are saved with their input images, masks and hints; a lost connection pauses the queue instead of failing jobs.
+- **Video files**: H.264, HEVC or ProRes with the generated audio muxed in, ML frame interpolation and super resolution where the system supports them, with Core Image fallbacks.
 
 ## Requirements
 
@@ -54,14 +63,7 @@ Then add the products you use to your target:
 .product(name: "DrawThingsKit", package: "DrawThings-Swift"),       // optional
 ```
 
-| Product | Contents |
-|---|---|
-| `DrawThingsClient` | `DrawThingsService`, `DrawThingsSession`, configuration and JSON, tensors and image helpers, media types, logging. No SwiftUI or Combine. |
-| `DrawThingsQueue` | `GenerationQueue`: runs many requests in order, with pause, cancel, retry, reordering and saved queues. |
-| `DrawThingsVideoKit` | `VideoProcessor` and `VideoAssembler`: video results to video files at the model's frame rate, with audio, frame interpolation and super resolution. |
-| `DrawThingsKit` | App state: saved server profiles and `ConnectionManager`, the server's model catalog with Draw Things+ models (`ModelsManager`), and the active configuration (`ConfigurationManager`). |
-
-**DrawThings family:** this is the base library that [DrawThingsQueue](https://github.com/euphoriacyberware-ai/DrawThingsQueue), [DrawThingsKit](https://github.com/euphoriacyberware-ai/DrawThingsKit) and [DrawThingsVideoKit](https://github.com/euphoriacyberware-ai/DrawThingsVideoKit) build on.
+Each optional product depends only on DrawThingsClient, and `import DrawThingsKit` also imports DrawThingsClient.
 
 **Third-party packages** (resolved by Swift Package Manager): [grpc-swift-2](https://github.com/grpc/grpc-swift-2), [grpc-swift-nio-transport](https://github.com/grpc/grpc-swift-nio-transport), [grpc-swift-protobuf](https://github.com/grpc/grpc-swift-protobuf), [swift-protobuf](https://github.com/apple/swift-protobuf) and [flatbuffers](https://github.com/google/flatbuffers). fpzip (floating-point tensor decompression) is bundled as the `CFpzip` target.
 
@@ -88,7 +90,8 @@ struct ContentView: View {
             }
             Button("Generate") {
                 Task {
-                    let result = try await session.generate(GenerationRequest(
+                    // A failure is also kept in session.lastError.
+                    let result = try? await session.generate(GenerationRequest(
                         prompt: "A lighthouse on a rocky coast at sunset",
                         configuration: DrawThingsConfiguration(
                             width: 1024, height: 1024, steps: 8,
@@ -96,7 +99,7 @@ struct ContentView: View {
                             sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
                         )
                     ))
-                    image = result.images.first
+                    image = result?.images.first ?? image
                 }
             }
             .disabled(!session.isConnected || session.isGenerating)
@@ -106,7 +109,9 @@ struct ContentView: View {
 }
 ```
 
-`DrawThingsSession` exposes `isConnected`, `serverInfo`, `isGenerating`, `progress`, `preview`, `remoteDownload`, `lastResult` and `lastError`, plus `cancel()`. It runs one generation at a time; `generate` throws `SessionError.busy` if another is running. A complete app is in [Examples/SwiftUIExample](Examples/SwiftUIExample).
+`DrawThingsSession` exposes `isConnected`, `serverInfo`, `isGenerating`, `progress`, `preview`, `remoteDownload`, `lastResult` and `lastError`, plus `cancel()`. It runs one generation at a time; `generate` throws `SessionError.busy` if another is running. For more than one at a time, use [`GenerationQueue`](#drawthingsqueue).
+
+> **Model settings matter.** Sampler, guidance and shift depend on the model. Z Image Turbo, used in these examples, needs a trailing sampler, guidance 1 and shift 3; with the configuration defaults (guidance 7, DPM++ 2M Karras, shift 1) the server returns no image, and the client throws `DrawThingsError.incompleteResponse`. The easiest source of correct settings is Draw Things itself: use Copy Configuration and [load the JSON](#draw-things-configuration-json).
 
 ### Without SwiftUI
 
@@ -268,7 +273,7 @@ if let audio = result.audio.first {
 }
 ```
 
-`MediaProfile` (on the request and the result) gives the model family, whether the output is a video, its native frame rate and the audio sample rate. Generated audio has no rate metadata, so the rate comes from the model; override it with `GenerationRequest.audioSampleRate` (and the family with `modelFamily`) for custom models.
+`result.media` (a `MediaProfile`) gives the model family, whether the output is a video, its frame rate and the audio sample rate. The frame rate follows Draw Things: the model's own spec when it sets one, otherwise its version or family. Generated audio has no rate metadata, so the rate comes from the model; override it with `GenerationRequest.audioSampleRate` (and the family with `modelFamily`) for custom models. To turn the frames into a video file, see [DrawThingsVideoKit](#drawthingsvideokit).
 
 ## Draw Things configuration JSON
 
@@ -363,9 +368,9 @@ Every helper has a `CGImage` form (exact pixels, `Sendable`) and a `PlatformImag
 
 Previews are latents whose colors depend on the model architecture. The client picks the family from the model file name (`ModelFamily.detect(from:)`); override it with `GenerationRequest.modelFamily`.
 
-| Family | Models | Latent channels | Native FPS | Audio |
+| Family | Models | Latent channels | FPS | Audio |
 |---|---|---|---|---|
-| `.sd1` | SD 1.x, SD 2.x, SVD | 4 | | |
+| `.sd1` | SD 1.x, SD 2.x, SVD | 4 | 30 (SVD) | |
 | `.sdxl` | SDXL, SSD-1B, PixArt, AuraFlow | 4 | | |
 | `.sd3` | Stable Diffusion 3 | 16 | | |
 | `.flux` | Flux.1, HiDream-I1, SeedVR2 | 16 | | |
@@ -374,8 +379,8 @@ Previews are latents whose colors depend on the model architecture. The client p
 | `.qwen21` | Qwen Image 2.1 | 64 | | |
 | `.zImage` | Z Image | 16 | | |
 | `.wan21` | Wan 2.1 | 16 | 16 | |
-| `.wan22` | Wan 2.2 5B | 48 | 16 | |
-| `.hunyuanVideo` | HunyuanVideo | 16 | 24 | |
+| `.wan22` | Wan 2.2 5B | 48 | 24 | |
+| `.hunyuanVideo` | HunyuanVideo | 16 | 30 | |
 | `.ltx2` | LTX-2 | 16 | 25 | 24 kHz |
 | `.ltx23` | LTX-2.3 | 16 | 25 | 48 kHz |
 | `.minimaxH3` | MiniMax H3 | 24 | 24 | 32 kHz |
@@ -384,7 +389,7 @@ Previews are latents whose colors depend on the model architecture. The client p
 | `.kandinsky` | Kandinsky 2.1 | 4 (OKLab) | | |
 | `.wurstchen` | Würstchen / Stable Cascade | 4 | | |
 
-MiniMax H3 and LTX-2 pack audio latent rows below the video latent; they are stripped from previews automatically. Qwen Image 2.1 returns final images as RGBA from its transparent decoder.
+The FPS column is the family's usual rate; some models set their own in their spec (several Wan 2.1 14B and HunyuanVideo models run at 24 or 30), and the result's `media.frameRate` uses it. MiniMax H3 and LTX-2 pack audio latent rows below the video latent; they are stripped from previews automatically. Qwen Image 2.1 returns final images as RGBA from its transparent decoder.
 
 ## Errors
 
@@ -405,9 +410,102 @@ do {
 }
 ```
 
+## DrawThingsQueue
+
+`GenerationQueue` runs requests one at a time, in order, on a `DrawThingsService`.
+
+```swift
+import DrawThingsQueue
+
+let queue = GenerationQueue(
+    service: service,
+    storage: QueueStorage()       // optional: save pending jobs across launches
+)
+try await queue.restore()         // reload jobs saved by an earlier run
+
+queue.enqueue(request)                                   // returns the QueueJob
+queue.enqueue(contentsOf: requests)
+
+for await result in queue.results {                      // each completed GenerationResult
+    save(result.images)
+}
+```
+
+| Property / method | |
+|---|---|
+| `pending`, `current`, `finished`, `jobs` | `QueueJob` values with `status` (`.pending`, `.running`, `.completed`, `.failed`, `.cancelled`), `result`, `error`, `retryCount` and timings |
+| `progress`, `preview`, `remoteDownload` | the running job's progress |
+| `pause()`, `resume()`, `isPaused`, `pauseReason` | pausing lets the running job finish |
+| `cancel(_:)`, `cancelAll()` | pending or running jobs; cancelled jobs move to `finished` |
+| `retry(_:)`, `canRetry(_:)`, `maxRetries` | puts a failed job back at the end |
+| `movePending(fromOffsets:toOffset:)`, `remove(_:)` | same arguments as SwiftUI's `onMove` |
+| `clearCompleted()`, `clearFailed()`, `clearFinished()`, `clearAll()`, `maxFinishedJobs` | housekeeping |
+| `events`, `results` | `AsyncStream`s; each access starts a new subscription |
+
+A configuration without a seed gets a random one when it is queued, so every result can be reproduced. If the server can't be reached, the job goes back to the front of the queue and the queue pauses with a `pauseReason`; set `queue.service` to another server if needed and call `resume()`. `QueueStorage` saves whole requests, including input images, masks and hints, and reads queues saved by DrawThingsQueue 0.x.
+
+## DrawThingsVideoKit
+
+`VideoProcessor` collects the frames and audio of video results and assembles them into a video file.
+
+```swift
+import DrawThingsVideoKit
+
+let processor = VideoProcessor(configuration: VideoProcessorConfiguration(
+    autoAssemble: true,
+    defaultVideoConfiguration: VideoConfiguration(outputURL: outputURL),
+    configurationProvider: { jobID in                    // optional: a file per job
+        VideoConfiguration(outputURL: folder.appending(path: "\(jobID).mp4"))
+    }
+))
+processor.connect(to: queue.results)                     // any AsyncSequence of GenerationResult
+// or: processor.ingest(try await service.generate(request))
+
+for await event in processor.events {
+    if case .assemblyCompleted(_, let url) = event { print("Saved \(url)") }
+}
+```
+
+Only video results are collected (`result.media.isVideo`), the video plays at the model's frame rate (`result.media.frameRate`), and the first audio track is muxed in. Automatic assemblies run one at a time, in order. `collectedFrames`, `isAssembling`, `assemblyProgress`, `lastOutputURL` and `lastError` are observable.
+
+`VideoConfiguration` sets the codec (`.h264`, `.hevc`, `.proRes422`, `.proRes4444`), quality, and optional processing:
+
+| Setting | Uses | Fallback |
+|---|---|---|
+| `interpolation: .enabled(factor:)` with `frameRate` | VTFrameProcessor motion-aware interpolation (macOS 15.4+, iOS 26+, not the simulator) | Core Image cross-dissolve |
+| `interpolationPassMode: .multiPass` | two 2× passes for 4×, which can reduce artifacts in fast motion | |
+| `superResolution: .enabled(factor:)` | VTSuperResolutionScaler (macOS 26+, iOS 26+, up to 1920×1080 input; Apple's model downloads on first use) | Lanczos scaling |
+
+With interpolation, set `frameRate` to `sourceFrameRate × factor` to keep the duration. `VideoAssembler` can also be used directly with a `VideoFrameCollection` of `CGImage`s or image files, and `VideoFrameCollection.save(to:)` / `load(from:)` keep frames and audio for re-encoding later. Sandboxed macOS apps that save to a user-chosen folder need the `com.apple.security.files.user-selected.read-write` entitlement.
+
+## DrawThingsKit
+
+App-level state, all `@Observable` and `@MainActor`:
+
+```swift
+import DrawThingsKit
+
+@State private var connection = ConnectionManager()      // saved servers; a localhost profile on first launch
+@State private var configuration = ConfigurationManager()
+
+await connection.connectToDefault()
+let models = connection.modelsManager                     // what the server reported
+configuration.selectedCheckpoint = models.baseModels.first
+let request = configuration.makeRequest()                 // prompt, model, LoRAs and configuration
+```
+
+- **`ConnectionManager`** keeps `ServerProfile`s (host, port, TLS, shared secret) in `UserDefaults`, connects with an echo that checks the shared secret, and exposes `activeService`, `connectionState` and `serverRequiresSharedSecret`. Shared secrets are stored in plain text.
+- **`ModelsManager`** lists the server's checkpoints, LoRAs, ControlNets, textual inversions and upscalers (with model browsing on). With `bridgeMode` it adds the official and community models available through Draw Things+, bundled as `CloudModels`. `compatibleLoRAs` and `compatibleControlNets` follow the selected checkpoint's version.
+- **`ConfigurationManager`** holds the prompt, selected models, LoRAs and ControlNets, and the `DrawThingsConfiguration`. `loadFromJSON(_:)` and `exportToJSON()` read and write Draw Things JSON, for copy and paste with the app through the system pasteboard.
+- **Presets**: `DimensionPresets`, `SamplerPresets` (display names for every sampler) and `SavedConfiguration` (a SwiftData model for saved configurations).
+
+## Example app
+
+[Examples/DrawThingsExample](Examples/DrawThingsExample) is a SwiftUI app for macOS and iOS: server profiles, generation with a configuration pasted from Draw Things, the queue with progress and reordering, and video assembly with a player. It rebuilds the views the earlier packages shipped, using only the public API. Open its `Package.swift` in Xcode and run.
+
 ## Logging
 
-`DTLogger` is built on `os.log` and shared by DrawThingsQueue, DrawThingsKit and DrawThingsVideoKit. It is off by default.
+`DTLogger` is built on `os.log` and shared by all four products. It is off by default.
 
 ```swift
 DTLogger.minimumLevel = .debug              // .debug, .info, .warning, .error, .fault, .none
@@ -427,7 +525,7 @@ swift build
 swift test
 ```
 
-The tests include an in-process gRPC server that stands in for Draw Things, so they need no running server.
+The tests include an in-process gRPC server that stands in for Draw Things, so they need no running server. The four tests that encode video are skipped on GitHub Actions, where `AVAssetWriter` crashes intermittently on the hosted macOS VMs; run them locally.
 
 - `Scripts/generate.sh <path-to-draw-things-community>` regenerates the protobuf, gRPC and FlatBuffers code in `Sources/DrawThingsClient/Generated` (and the test server stubs) from the protocol schemas in a local checkout of [draw-things-community](https://github.com/drawthingsai/draw-things-community). The schemas themselves are not stored in this repository. It needs `protoc` and `flatc` 25.9.23; the protoc plugins are built from the package's pinned dependencies.
 - `Scripts/update-model-specs.sh` refreshes the bundled `models.json`. CI runs it weekly and opens a pull request when it changed.
@@ -444,4 +542,4 @@ MIT License. See [LICENSE](LICENSE).
 
 The "Draw Things" name is used in this project only because Draw Things is the application these libraries are designed to work with. The author is not affiliated with, endorsed by, or associated with the developers of Draw Things.
 
-DrawThingsClient is an independent client for the Draw Things gRPC protocol. To interoperate with Draw Things servers, its generated protocol code (`Sources/DrawThingsClient/Generated`) is produced from the protocol and configuration schemas published in [draw-things-community](https://github.com/drawthingsai/draw-things-community) (GPL-3.0), and parts of its tensor, preview and configuration handling follow the behavior of that project so that results match the Draw Things app. The schemas themselves are not included in this repository.
+DrawThings-Swift is an independent client for the Draw Things gRPC protocol. To interoperate with Draw Things servers, its generated protocol code (`Sources/DrawThingsClient/Generated`) is produced from the protocol and configuration schemas published in [draw-things-community](https://github.com/drawthingsai/draw-things-community) (GPL-3.0), and parts of its tensor, preview and configuration handling follow the behavior of that project so that results match the Draw Things app. The schemas themselves are not included in this repository.

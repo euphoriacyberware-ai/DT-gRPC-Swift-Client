@@ -1,8 +1,18 @@
-# Migrating to DrawThingsClient 2.0
+# Migrating to DrawThings-Swift 2.0
 
 Version 2 moves to Swift 6, grpc-swift 2 and an event-stream API, and fixes a set of bugs that
-could lose audio, show stale progress, crash on bad values or send rotated images. Most changes
-are mechanical; this guide maps the 1.x API to 2.0.
+could lose audio, show stale progress, crash on bad values or send rotated images. It also brings
+the separate DrawThingsQueue, DrawThingsVideoKit and DrawThingsKit packages into this one as
+optional products, without their SwiftUI views. Most changes are mechanical; this guide maps the
+1.x API, and each of those packages, to 2.0.
+
+| If you used | Read |
+|---|---|
+| DrawThingsClient 1.x | everything up to [Errors](#errors) |
+| DrawThingsQueue 0.x | [DrawThingsQueue 0.x](#drawthingsqueue-0x) |
+| DrawThingsVideoKit 0.x | [DrawThingsVideoKit 0.x](#drawthingsvideokit-0x) |
+| DrawThingsKit 2.x | [DrawThingsKit 2.x](#drawthingskit-2x) |
+| any of their SwiftUI views | [Examples/DrawThingsExample](Examples/DrawThingsExample), which rebuilds them on the public API |
 
 ## Requirements
 
@@ -13,20 +23,28 @@ are mechanical; this guide maps the 1.x API to 2.0.
 | gRPC | grpc-swift 1.x | grpc-swift 2 |
 | Package pin | `branch: "main"` (1.6–1.7.1 couldn't be pinned by version) | `from: "2.0.0"` |
 
-Stay on `.upToNextMajor(from: "1.7.2")` until you can meet the new platform floor.
+Stay on `.upToNextMajor(from: "1.7.2")` (and DrawThingsQueue 0.1.1, DrawThingsVideoKit 0.3.1,
+DrawThingsKit 2.2.1) until you can meet the new platform floor. An app gets one version of a
+package, so the old Queue, VideoKit and Kit packages can't be combined with DrawThings-Swift 2.0;
+move them together.
 
 ## Package
 
-The repository is renamed **DrawThings-Swift** (GitHub redirects the old URL). The module is still
-`DrawThingsClient`, but the `package:` label follows the new URL:
+The repository is renamed **DrawThings-Swift** (GitHub redirects the old URL). Module names are
+unchanged, but the `package:` label follows the new URL:
 
 ```swift
 .package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.0.0"),
-// in the target:
+// in the target, the products you use:
 .product(name: "DrawThingsClient", package: "DrawThings-Swift"),
+.product(name: "DrawThingsQueue", package: "DrawThings-Swift"),
+.product(name: "DrawThingsVideoKit", package: "DrawThings-Swift"),
+.product(name: "DrawThingsKit", package: "DrawThings-Swift"),
 ```
 
-The library no longer imports SwiftUI or Combine; its observable types use Observation.
+The libraries no longer import SwiftUI or Combine; their observable types use Observation, so
+`@StateObject` becomes `@State`, `@ObservedObject` becomes a plain property (or `@Bindable` for
+bindings), and `@EnvironmentObject` becomes `@Environment(Type.self)`.
 
 ## SwiftUI: `DrawThingsClient` → `DrawThingsSession`
 
@@ -274,4 +292,5 @@ secret; disconnecting closes the connection.
 - `ModelSpecProvider`
 - the ControlPanel service stubs
 - deprecated `ImageHelpers` NSImage methods and `createMaskFromImage`
-- `Examples/ConfigfromJSON.swift`
+- `Examples/ConfigfromJSON.swift` and `Examples/SwiftUIExample` (see `Examples/DrawThingsExample`)
+- the SwiftUI views of DrawThingsVideoKit and DrawThingsKit

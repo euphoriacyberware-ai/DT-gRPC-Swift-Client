@@ -1,11 +1,12 @@
 # Changelog
 
-All notable changes to DrawThingsClient are documented here. The project follows
+All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
 ## 2.0.0 — Unreleased
 
-A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API mapping.
+A major rework for Swift 6 that also brings DrawThingsQueue, DrawThingsVideoKit and DrawThingsKit
+into this package as optional products. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API mapping.
 
 ### Requirements
 - macOS 15 / iOS 18, Swift 6 language mode, grpc-swift 2.
@@ -41,8 +42,11 @@ A major rework for Swift 6. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API
   orientation.
 - `Scripts/generate.sh` (code generation from a local draw-things-community checkout) and
   `Scripts/update-model-specs.sh`.
+- `Examples/DrawThingsExample`, a SwiftUI app for macOS and iOS that rebuilds the earlier packages'
+  views on the public API; CI builds it.
 - CI for macOS and iOS; a weekly workflow that refreshes the bundled model specs.
-- An in-process gRPC test server; 108 tests on Swift Testing.
+- An in-process gRPC test server; 146 tests on Swift Testing, including the first tests for the queue,
+  video and app-state code.
 
 ### Changed
 - The repository is renamed DrawThings-Swift and the package `DrawThingsSwift`; the module is
