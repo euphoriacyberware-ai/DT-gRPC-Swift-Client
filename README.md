@@ -436,4 +436,6 @@ MIT License. See [LICENSE](LICENSE).
 
 ## Disclaimer
 
-The "Draw Things" name is used in this project only because Draw Things is the application these libraries are designed to work with. The author is not affiliated with, endorsed by, or associated with the developers of Draw Things. The code in this library was independently derived and is not based on Draw Things source code.
+The "Draw Things" name is used in this project only because Draw Things is the application these libraries are designed to work with. The author is not affiliated with, endorsed by, or associated with the developers of Draw Things.
+
+DrawThingsClient is an independent client for the Draw Things gRPC protocol. To interoperate with Draw Things servers, its generated protocol code (`Sources/DrawThingsClient/Generated`) is produced from the protocol and configuration schemas published in [draw-things-community](https://github.com/drawthingsai/draw-things-community) (GPL-3.0), and parts of its tensor, preview and configuration handling follow the behavior of that project so that results match the Draw Things app. The schemas themselves are not included in this repository.
