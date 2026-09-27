@@ -1,5 +1,5 @@
 //
-//  Configuration.swift
+//  DrawThingsConfiguration.swift
 //  DrawThingsClient
 //
 //  Created by euphoriacyberware-ai.
@@ -10,12 +10,12 @@
 //
 
 import Foundation
-import FlatBuffers
 
-public struct LoRAConfig: Sendable {
-    public let file: String
-    public let weight: Float
-    public let mode: LoRAMode
+/// A LoRA applied to the generation.
+public struct LoRAConfig: Sendable, Hashable {
+    public var file: String
+    public var weight: Float
+    public var mode: LoRAMode
 
     public init(file: String, weight: Float = 1.0, mode: LoRAMode = .all) {
         self.file = file
@@ -24,43 +24,69 @@ public struct LoRAConfig: Sendable {
     }
 }
 
-public struct ControlConfig: Sendable {
-    public let file: String
-    public let weight: Float
-    public let guidanceStart: Float
-    public let guidanceEnd: Float
-    public let controlMode: ControlMode
+/// A control (ControlNet, T2I adapter, IP adapter...) applied to the generation.
+public struct ControlConfig: Sendable, Hashable {
+    public var file: String
+    public var weight: Float
+    public var guidanceStart: Float
+    public var guidanceEnd: Float
+    public var controlMode: ControlMode
     /// Matches the per-model value the app looks up in its ControlNet zoo. False
     /// for every stock control except Shuffle, which needs true.
-    public let globalAveragePooling: Bool
+    public var globalAveragePooling: Bool
+    public var noPrompt: Bool
+    public var downSamplingRate: Float
+    /// Overrides the hint type the control consumes (`.unspecified` uses the model's own).
+    public var inputOverride: ControlInputType
+    public var targetBlocks: [String]
 
-    public init(file: String, weight: Float = 1.0, guidanceStart: Float = 0.0, guidanceEnd: Float = 1.0, controlMode: ControlMode = .balanced, globalAveragePooling: Bool = false) {
+    public init(
+        file: String,
+        weight: Float = 1.0,
+        guidanceStart: Float = 0.0,
+        guidanceEnd: Float = 1.0,
+        controlMode: ControlMode = .balanced,
+        globalAveragePooling: Bool = false,
+        noPrompt: Bool = false,
+        downSamplingRate: Float = 1.0,
+        inputOverride: ControlInputType = .unspecified,
+        targetBlocks: [String] = []
+    ) {
         self.file = file
         self.weight = weight
         self.guidanceStart = guidanceStart
         self.guidanceEnd = guidanceEnd
         self.controlMode = controlMode
         self.globalAveragePooling = globalAveragePooling
+        self.noPrompt = noPrompt
+        self.downSamplingRate = downSamplingRate
+        self.inputOverride = inputOverride
+        self.targetBlocks = targetBlocks
     }
 }
 
-public struct DrawThingsConfiguration: Sendable {
-    // Core parameters (width/height must be multiples of 64)
-    public var width: Int32 = 512 {
-        didSet { width = (width / 64) * 64 }
-    }
-    public var height: Int32 = 512 {
-        didSet { height = (height / 64) * 64 }
-    }
+/// Generation settings, mirroring the Draw Things app's configuration.
+///
+/// Sizes are in pixels and are sent in units of 64 (rounded down), as Draw Things requires.
+/// ``validate()`` reports values the server can't accept; ``toFlatBufferData()`` calls it.
+/// The configuration is `Codable` in Draw Things' own JSON format (the format of the app's
+/// "Copy Configuration"), see ``toJSON(includeSeed:)`` and ``fromJSON(_:)``.
+public struct DrawThingsConfiguration: Sendable, Hashable {
+    // Core parameters (sizes are sent in units of 64 pixels, rounded down)
+    public var width: Int32
+    public var height: Int32
     public var steps: Int32
     public var model: String
     public var sampler: SamplerType
     public var guidanceScale: Float
-    public var seed: Int64?
+    /// The seed, or nil for a random seed each generation.
+    public var seed: UInt32?
     public var clipSkip: Int32
     public var loras: [LoRAConfig]
     public var controls: [ControlConfig]
     public var shift: Float
+    /// Shift for the audio stream of audio-video models (LTX-2, MiniMax H3).
+    public var shiftForAudio: Float
 
     // Batch parameters
     public var batchCount: Int32
@@ -131,14 +157,10 @@ public struct DrawThingsConfiguration: Sendable {
     public var decodingTileHeight: Int32
     public var decodingTileOverlap: Int32
 
-    // HiRes Fix parameters (width/height must be multiples of 64)
+    // HiRes Fix parameters (sizes are sent in units of 64 pixels, rounded down)
     public var hiresFix: Bool
-    public var hiresFixWidth: Int32 = 0 {
-        didSet { hiresFixWidth = (hiresFixWidth / 64) * 64 }
-    }
-    public var hiresFixHeight: Int32 = 0 {
-        didSet { hiresFixHeight = (hiresFixHeight / 64) * 64 }
-    }
+    public var hiresFixWidth: Int32
+    public var hiresFixHeight: Int32
     public var hiresFixStrength: Float
 
     // Stage 2 parameters
@@ -152,6 +174,11 @@ public struct DrawThingsConfiguration: Sendable {
     public var teaCacheEnd: Int32
     public var teaCacheThreshold: Float
     public var teaCacheMaxSkipSteps: Int32
+
+    // SOL attention (sparse attention for video models)
+    public var usesSolAttention: Bool
+    public var solAttentionStart: Int32
+    public var solAttentionTau: Float
 
     // Causal inference parameters
     public var causalInferenceEnabled: Bool
@@ -184,8 +211,7 @@ public struct DrawThingsConfiguration: Sendable {
     public var openClipGText: String?
     public var t5Text: String?
 
-    // Seed mode
-    public var seedMode: Int32
+    public var seedMode: SeedMode
 
     public init(
         width: Int32 = 512,
@@ -194,11 +220,12 @@ public struct DrawThingsConfiguration: Sendable {
         model: String = "sd_xl_base_1.0.safetensors",
         sampler: SamplerType = .dpmpp2mkarras,
         guidanceScale: Float = 7.0,
-        seed: Int64? = nil,
+        seed: UInt32? = nil,
         clipSkip: Int32 = 1,
         loras: [LoRAConfig] = [],
         controls: [ControlConfig] = [],
         shift: Float = 1.0,
+        shiftForAudio: Float = 3.0,
         batchCount: Int32 = 1,
         batchSize: Int32 = 1,
         strength: Float = 1.0,
@@ -256,6 +283,9 @@ public struct DrawThingsConfiguration: Sendable {
         teaCacheEnd: Int32 = -1,
         teaCacheThreshold: Float = 0.06,
         teaCacheMaxSkipSteps: Int32 = 3,
+        usesSolAttention: Bool = false,
+        solAttentionStart: Int32 = 2,
+        solAttentionTau: Float = 0.5,
         causalInferenceEnabled: Bool = false,
         causalInference: Int32 = 3,
         causalInferencePad: Int32 = 0,
@@ -273,7 +303,7 @@ public struct DrawThingsConfiguration: Sendable {
         clipLText: String? = nil,
         openClipGText: String? = nil,
         t5Text: String? = nil,
-        seedMode: Int32 = 2
+        seedMode: SeedMode = .scalealike
     ) {
         self.width = width
         self.height = height
@@ -286,6 +316,7 @@ public struct DrawThingsConfiguration: Sendable {
         self.loras = loras
         self.controls = controls
         self.shift = shift
+        self.shiftForAudio = shiftForAudio
         self.batchCount = batchCount
         self.batchSize = batchSize
         self.strength = strength
@@ -343,6 +374,9 @@ public struct DrawThingsConfiguration: Sendable {
         self.teaCacheEnd = teaCacheEnd
         self.teaCacheThreshold = teaCacheThreshold
         self.teaCacheMaxSkipSteps = teaCacheMaxSkipSteps
+        self.usesSolAttention = usesSolAttention
+        self.solAttentionStart = solAttentionStart
+        self.solAttentionTau = solAttentionTau
         self.causalInferenceEnabled = causalInferenceEnabled
         self.causalInference = causalInference
         self.causalInferencePad = causalInferencePad
@@ -361,224 +395,5 @@ public struct DrawThingsConfiguration: Sendable {
         self.openClipGText = openClipGText
         self.t5Text = t5Text
         self.seedMode = seedMode
-    }
-
-    public func toFlatBufferData() throws -> Data {
-        // Create GenerationConfigurationT object
-        let configT = GenerationConfigurationT()
-
-        // Convert width/height to units of 64 pixels as per FlatBuffer schema
-        configT.startWidth = UInt16(width / 64)
-        configT.startHeight = UInt16(height / 64)
-
-        // Core generation parameters
-        configT.steps = UInt32(steps)
-        configT.model = model
-        configT.sampler = sampler
-        configT.guidanceScale = guidanceScale
-        configT.clipSkip = UInt32(clipSkip)
-        configT.shift = shift
-
-        // Seed handling - clamp to UInt32 range for flatbuffer compatibility
-        if let seed = seed, seed >= 0 {
-            // Mask to UInt32 range to handle seeds that exceed UInt32.max
-            configT.seed = UInt32(truncatingIfNeeded: seed)
-        } else {
-            configT.seed = arc4random()
-        }
-
-        configT.seedMode = mapSeedModeToEnum(seedMode)
-
-        // Batch parameters
-        configT.id = 0
-        configT.batchCount = UInt32(batchCount)
-        configT.batchSize = UInt32(batchSize)
-        configT.strength = strength
-
-        // Guidance parameters
-        configT.imageGuidanceScale = imageGuidanceScale
-        configT.clipWeight = clipWeight
-        configT.guidanceEmbed = guidanceEmbed
-        configT.speedUpWithGuidanceEmbed = speedUpWithGuidanceEmbed
-        configT.cfgZeroStar = cfgZeroStar
-        configT.cfgZeroInitSteps = cfgZeroInitSteps
-
-        // Compression parameters
-        configT.compressionArtifacts = self.compressionArtifacts
-        configT.compressionArtifactsQuality = self.compressionArtifactsQuality
-
-        // Color calibration
-        configT.colorCalibration = self.colorCalibration
-
-        // Prompt expansion
-        configT.expandPromptToJson = self.expandPromptToJson
-
-        // Mask/Inpaint parameters
-        configT.maskBlur = maskBlur
-        configT.maskBlurOutset = Int32(maskBlurOutset)
-        configT.preserveOriginalAfterInpaint = preserveOriginalAfterInpaint
-
-        // Quality parameters
-        configT.sharpness = sharpness
-        configT.stochasticSamplingGamma = stochasticSamplingGamma
-        configT.aestheticScore = aestheticScore
-        configT.negativeAestheticScore = negativeAestheticScore
-
-        // Image prior parameters
-        configT.negativePromptForImagePrior = negativePromptForImagePrior
-        configT.imagePriorSteps = UInt32(imagePriorSteps)
-
-        // Crop/Size parameters
-        configT.cropTop = Int32(cropTop)
-        configT.cropLeft = Int32(cropLeft)
-        // Pass these through verbatim - do NOT substitute width/height when they
-        // are 0. The Draw Things app sends 0 for an unset SDXL micro-conditioning
-        // size and lets the server decide; substituting the start size here makes
-        // our request differ from the UI's for an otherwise identical config.
-        configT.originalImageHeight = UInt32(max(0, originalImageHeight))
-        configT.originalImageWidth = UInt32(max(0, originalImageWidth))
-        configT.targetImageHeight = UInt32(max(0, targetImageHeight))
-        configT.targetImageWidth = UInt32(max(0, targetImageWidth))
-        configT.negativeOriginalImageHeight = UInt32(max(0, negativeOriginalImageHeight))
-        configT.negativeOriginalImageWidth = UInt32(max(0, negativeOriginalImageWidth))
-
-        // Upscaler parameters
-        configT.upscalerScaleFactor = UInt8(upscalerScaleFactor)
-
-        // Text encoder parameters
-        configT.resolutionDependentShift = resolutionDependentShift
-        configT.t5TextEncoder = t5TextEncoder
-        configT.separateClipL = separateClipL
-        configT.separateOpenClipG = separateOpenClipG
-        configT.separateT5 = separateT5
-
-        // Tiled parameters (FlatBuffer stores tile dimensions in units of 64 pixels)
-        configT.tiledDiffusion = tiledDiffusion
-        configT.diffusionTileWidth = UInt16(diffusionTileWidth / 64)
-        configT.diffusionTileHeight = UInt16(diffusionTileHeight / 64)
-        configT.diffusionTileOverlap = UInt16(diffusionTileOverlap / 64)
-        configT.tiledDecoding = tiledDecoding
-        configT.decodingTileWidth = UInt16(decodingTileWidth / 64)
-        configT.decodingTileHeight = UInt16(decodingTileHeight / 64)
-        configT.decodingTileOverlap = UInt16(decodingTileOverlap / 64)
-
-        // HiRes Fix parameters
-        configT.hiresFix = hiresFix
-        configT.hiresFixStartWidth = UInt16(hiresFixWidth / 64)
-        configT.hiresFixStartHeight = UInt16(hiresFixHeight / 64)
-        configT.hiresFixStrength = hiresFixStrength
-
-        // Upscaler
-        configT.upscaler = upscaler?.isEmpty == false ? upscaler : nil
-
-        // Face restoration
-        configT.faceRestoration = faceRestoration?.isEmpty == false ? faceRestoration : nil
-
-        // Stage 2 parameters
-        configT.stage2Steps = UInt32(stage2Steps)
-        configT.stage2Cfg = stage2Guidance
-        configT.stage2Shift = stage2Shift
-
-        // TEA Cache parameters
-        configT.teaCache = teaCache
-        configT.teaCacheStart = Int32(teaCacheStart)
-        configT.teaCacheEnd = Int32(teaCacheEnd)
-        configT.teaCacheThreshold = teaCacheThreshold
-        configT.teaCacheMaxSkipSteps = Int32(teaCacheMaxSkipSteps)
-
-        // Causal inference parameters
-        configT.causalInferenceEnabled = causalInferenceEnabled
-        configT.causalInference = Int32(causalInference)
-        configT.causalInferencePad = Int32(causalInferencePad)
-
-        // Video parameters
-        configT.fpsId = UInt32(fps)
-        configT.motionBucketId = UInt32(motionScale)
-        configT.condAug = guidingFrameNoise
-        configT.startFrameCfg = startFrameGuidance
-        configT.numFrames = UInt32(numFrames)
-
-        // Refiner parameters
-        configT.refinerModel = refinerModel?.isEmpty == false ? refinerModel : nil
-        configT.refinerStart = refinerStart
-        configT.zeroNegativePrompt = zeroNegativePrompt
-
-        // Configuration name
-        configT.name = name
-
-        // Separate text encoder prompts
-        configT.clipLText = clipLText
-        configT.openClipGText = openClipGText
-        configT.t5Text = t5Text
-
-        // Add user-provided controls (ControlNet)
-        var controlsArray: [ControlT] = controls.map { control in
-            let controlT = ControlT()
-            controlT.file = control.file
-            controlT.weight = control.weight
-            controlT.guidanceStart = control.guidanceStart
-            controlT.guidanceEnd = control.guidanceEnd
-            controlT.controlMode = control.controlMode
-            controlT.noPrompt = false
-            controlT.globalAveragePooling = control.globalAveragePooling
-            controlT.downSamplingRate = 1.0
-            controlT.targetBlocks = []
-            DTLogger.debug("Added ControlNet control: \(control.file)", category: .configuration)
-            return controlT
-        }
-
-        // Add inpaint control if enabled
-        if enableInpainting {
-            let inpaintControl = ControlT()
-            inpaintControl.inputOverride = .inpaint
-            inpaintControl.weight = 1.0
-            inpaintControl.guidanceStart = 0.0
-            inpaintControl.guidanceEnd = 1.0
-            inpaintControl.noPrompt = false
-            inpaintControl.globalAveragePooling = true
-            inpaintControl.downSamplingRate = 1.0
-            inpaintControl.controlMode = .balanced
-            inpaintControl.targetBlocks = []
-            inpaintControl.file = ""  // Empty file - mask is sent separately
-            controlsArray.append(inpaintControl)
-            DTLogger.debug("Added inpaint control to configuration", category: .configuration)
-        }
-
-        configT.controls = controlsArray
-
-        // Add LoRAs
-        configT.loras = loras.map { lora in
-            let loraT = LoRAT()
-            loraT.file = lora.file
-            loraT.weight = lora.weight
-            loraT.mode = lora.mode
-            return loraT
-        }
-
-        // Dump key generation parameters for debugging
-        DTLogger.debug("FlatBuffer config: model=\(configT.model ?? "nil"), sampler=\(configT.sampler.rawValue) (\(configT.sampler)), steps=\(configT.steps), guidanceScale=\(configT.guidanceScale), strength=\(configT.strength), shift=\(configT.shift), seed=\(configT.seed), seedMode=\(configT.seedMode.rawValue)", category: .configuration)
-        DTLogger.debug("  guidance: guidanceEmbed=\(configT.guidanceEmbed), speedUpWithGuidanceEmbed=\(configT.speedUpWithGuidanceEmbed), resolutionDependentShift=\(configT.resolutionDependentShift), clipSkip=\(configT.clipSkip)", category: .configuration)
-        DTLogger.debug("  size: \(configT.startWidth * 64)x\(configT.startHeight * 64), t5TextEncoder=\(configT.t5TextEncoder), clipWeight=\(configT.clipWeight)", category: .configuration)
-        DTLogger.debug("  controls: \(configT.controls.count), loras: \(configT.loras.count)", category: .configuration)
-
-        // Pack into FlatBuffer — match the upstream Draw Things app's
-        // serialization: default FlatBufferBuilder (no serializeDefaults)
-        // and .data for the output.  Fields whose value equals the schema
-        // default are omitted from the wire format; the server reader
-        // returns the same schema default for missing fields, so the
-        // round-trip is lossless.
-        var builder = FlatBufferBuilder(initialSize: 1024)
-        var mutableConfigT = configT
-        let offset = GenerationConfiguration.pack(&builder, obj: &mutableConfigT)
-        builder.finish(offset: offset)
-
-        return builder.data
-    }
-
-    // Map seed mode to FlatBuffer enum. The raw values line up 1:1
-    // (legacy=0, torchcpucompatible=1, scalealike=2, nvidiagpucompatible=3),
-    // so preserve the pasted value exactly; only fall back for unknown modes.
-    private func mapSeedModeToEnum(_ mode: Int32) -> SeedMode {
-        SeedMode(rawValue: Int8(truncatingIfNeeded: mode)) ?? .torchcpucompatible
     }
 }

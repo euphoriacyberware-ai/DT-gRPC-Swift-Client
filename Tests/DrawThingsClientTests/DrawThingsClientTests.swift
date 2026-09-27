@@ -37,13 +37,8 @@ final class DrawThingsClientTests: XCTestCase {
     /// bug that collapsed scalealike(2) and nvidiagpucompatible(3) to
     /// torchcpucompatible, which changes the initial noise and breaks reproduction.
     func testSeedModeSurvivesEncoding() throws {
-        let cases: [(Int32, SeedMode)] = [
-            (0, .legacy),
-            (1, .torchcpucompatible),
-            (2, .scalealike),
-            (3, .nvidiagpucompatible),
-        ]
-        for (mode, expected) in cases {
+        for expected in [SeedMode.legacy, .torchcpucompatible, .scalealike, .nvidiagpucompatible] {
+            let mode = expected
             let config = DrawThingsConfiguration(
                 width: 512, height: 512, steps: 20,
                 model: "sd_xl_base_1.0.safetensors", guidanceScale: 7.0,
