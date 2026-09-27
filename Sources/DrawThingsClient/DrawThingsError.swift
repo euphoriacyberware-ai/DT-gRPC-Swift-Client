@@ -53,7 +53,12 @@ public enum DrawThingsError: Error, Sendable, LocalizedError {
         case .cancelled:
             return CancellationError()
         case .unavailable, .deadlineExceeded:
-            return DrawThingsError.connectionFailed(rpcError.message)
+            var detail = rpcError.message
+            if detail.contains("connection preface") {
+                // What a TLS/plaintext mismatch or a rejected certificate looks like from here.
+                detail += " This usually means the TLS setting does not match the server's, or the server's certificate was rejected (use .tls(verification: .none) or .trustRoots for a self-signed server)."
+            }
+            return DrawThingsError.connectionFailed(detail)
         case .unauthenticated, .permissionDenied:
             return DrawThingsError.unauthenticated
         default:

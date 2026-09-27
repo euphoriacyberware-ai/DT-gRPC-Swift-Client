@@ -43,6 +43,25 @@ struct ServerEndpointTests {
     func publicHosts(host: String) {
         #expect(!ServerEndpoint(host: host).isLocalNetwork)
     }
+
+    @Test func classifiesIPLiterals() {
+        #expect(ServerEndpoint(host: "192.168.68.67").isIPv4Literal)
+        #expect(!ServerEndpoint(host: "192.168.68").isIPv4Literal)
+        #expect(!ServerEndpoint(host: "256.1.1.1").isIPv4Literal)
+        #expect(!ServerEndpoint(host: "molly.example.com").isIPv4Literal)
+        #expect(ServerEndpoint(host: "fe80::1").isIPv6Literal)
+    }
+
+    @Test func resolvesLiteralsWithoutLookup() async {
+        #expect(await ServerEndpoint(host: "10.0.0.1").resolveAddresses() == ["10.0.0.1"])
+        #expect(await ServerEndpoint(host: "::1").resolveAddresses() == ["::1"])
+    }
+
+    @Test func resolvesLocalhostToLoopback() async {
+        let addresses = await ServerEndpoint(host: "localhost").resolveAddresses()
+        #expect(!addresses.isEmpty)
+        #expect(addresses.allSatisfy { ServerEndpoint(host: $0).isLoopback })
+    }
 }
 
 @Suite("ResponseAssembler")

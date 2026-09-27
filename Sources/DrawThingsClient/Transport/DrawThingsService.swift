@@ -26,56 +26,96 @@ public actor DrawThingsService {
     /// Resolves the model specifications sent with each request.
     public nonisolated let modelSpecs: ModelSpecStore
 
-    private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
-    private let client: ImageGenerationService.Client<HTTP2ClientTransport.Posix>
-    private let connectionTask: Task<Void, Never>
+    private typealias Transport = HTTP2ClientTransport.Posix
+
+    /// The live gRPC client, created on first use (see ``connection()``).
+    private struct Connection {
+        let grpcClient: GRPCClient<Transport>
+        let client: ImageGenerationService.Client<Transport>
+        let runTask: Task<Void, Never>
+    }
+
+    private var connectionState: Connection?
+    private var connecting: Task<Connection, any Error>?
+    private var isShutDown = false
     /// The server's metadata from its last echo reply.
     private var serverOverride: MetadataOverride?
     private var hasEchoed = false
     private var echoTask: Task<EchoReply, any Error>?
 
-    public init(endpoint: ServerEndpoint, options: ConnectionOptions = .default) throws {
+    /// Creates a service for `endpoint`. No network activity happens until the first call.
+    public init(endpoint: ServerEndpoint, options: ConnectionOptions = .default) {
         self.endpoint = endpoint
         self.options = options
         self.modelSpecs = ModelSpecStore(source: options.modelSpecs)
+    }
 
-        let target: any ResolvableTarget = endpoint.isIPv6Literal
-            ? .ipv6(address: endpoint.host, port: endpoint.port)
-            : .dns(host: endpoint.host, port: endpoint.port)
-        let transport = try HTTP2ClientTransport.Posix(
+    /// Parses `address` (see ``ServerEndpoint/init(_:)``) and creates a service for it.
+    public init(address: String, options: ConnectionOptions = .default) throws {
+        self.init(endpoint: try ServerEndpoint(address), options: options)
+    }
+
+    deinit {
+        // Non-blocking: in-flight calls finish, then the connection task exits.
+        connectionState?.grpcClient.beginGracefulShutdown()
+    }
+
+    /// Closes the connection once in-flight calls finish. The service cannot be used afterwards.
+    public func shutdown() async {
+        isShutDown = true
+        if let connecting { _ = try? await connecting.value }
+        guard let connection = connectionState else { return }
+        connection.grpcClient.beginGracefulShutdown()
+        await connection.runTask.value
+    }
+
+    /// Returns the gRPC client, connecting on first use. Concurrent first callers share one
+    /// connection attempt.
+    private func connection() async throws -> ImageGenerationService.Client<Transport> {
+        if let connectionState { return connectionState.client }
+        guard !isShutDown else {
+            throw DrawThingsError.connectionFailed("the service has been shut down")
+        }
+        if let connecting { return try await connecting.value.client }
+
+        let endpoint = self.endpoint
+        let options = self.options
+        let task = Task { try await Self.connect(endpoint: endpoint, options: options) }
+        connecting = task
+        defer { connecting = nil }
+        let connection = try await task.value
+        connectionState = connection
+        return connection.client
+    }
+
+    private static func connect(endpoint: ServerEndpoint, options: ConnectionOptions) async throws -> Connection {
+        let target: any ResolvableTarget
+        if endpoint.isIPv6Literal {
+            target = .ipv6(address: endpoint.host, port: endpoint.port)
+        } else if endpoint.isIPv4Literal {
+            // An IP target leaves the TLS server name (SNI) unset; a DNS target would send the
+            // literal IP, which TLS forbids.
+            target = .ipv4(address: endpoint.host, port: endpoint.port)
+        } else {
+            target = .dns(host: endpoint.host, port: endpoint.port)
+        }
+        let transport = try Transport(
             target: target,
-            transportSecurity: try Self.transportSecurity(for: options.security, endpoint: endpoint),
+            transportSecurity: try await transportSecurity(for: options.security, endpoint: endpoint),
             config: .defaults { config in
                 // Draw Things compresses large responses.
                 config.compression.enabledAlgorithms = .all
             }
         )
         let grpcClient = GRPCClient(transport: transport)
-        self.grpcClient = grpcClient
-        self.client = ImageGenerationService.Client(wrapping: grpcClient)
-        self.connectionTask = Task {
+        let runTask = Task {
             do {
                 try await grpcClient.runConnections()
             } catch {
                 DTLogger.error("gRPC connection ended with error: \(error)", category: .connection)
             }
         }
-    }
-
-    /// Parses `address` (see ``ServerEndpoint/init(_:)``) and connects with `options`.
-    public init(address: String, options: ConnectionOptions = .default) throws {
-        try self.init(endpoint: ServerEndpoint(address), options: options)
-    }
-
-    deinit {
-        // Non-blocking: in-flight calls finish, then the connection task exits.
-        grpcClient.beginGracefulShutdown()
-    }
-
-    /// Closes the connection once in-flight calls finish.
-    public func shutdown() async {
-        grpcClient.beginGracefulShutdown()
-        await connectionTask.value
+        return Connection(grpcClient: grpcClient, client: ImageGenerationService.Client(wrapping: grpcClient), runTask: runTask)
     }
 
     // MARK: - Echo
@@ -89,7 +129,7 @@ public actor DrawThingsService {
             if let secret = options.sharedSecret { $0.sharedSecret = secret }
         }
         do {
-            let reply = try await client.echo(request: ClientRequest(message: request), options: unaryCallOptions)
+            let reply = try await connection().echo(request: ClientRequest(message: request), options: unaryCallOptions)
             if reply.sharedSecretMissing {
                 throw DrawThingsError.unauthenticated
             }
@@ -127,7 +167,7 @@ public actor DrawThingsService {
             if let secret = options.sharedSecret { $0.sharedSecret = secret }
         }
         do {
-            return try await client.filesExist(request: ClientRequest(message: request), options: unaryCallOptions)
+            return try await connection().filesExist(request: ClientRequest(message: request), options: unaryCallOptions)
         } catch {
             throw DrawThingsError.map(error)
         }
@@ -184,7 +224,7 @@ public actor DrawThingsService {
         DTLogger.debug("Sending request: config \(configuration.count) bytes, hints \(hints.count), contents \(request.contents.count)", category: .grpc)
 
         do {
-            return try await client.generateImage(request: ClientRequest(message: request), options: streamingCallOptions) { response in
+            return try await connection().generateImage(request: ClientRequest(message: request), options: streamingCallOptions) { response in
                 var assembler = ResponseAssembler()
                 var images: [Data] = []
                 var lastPreview: Data?
@@ -286,15 +326,16 @@ public actor DrawThingsService {
     private static func transportSecurity(
         for security: TransportSecurity,
         endpoint: ServerEndpoint
-    ) throws -> HTTP2ClientTransport.Posix.TransportSecurity {
+    ) async throws -> Transport.TransportSecurity {
         switch security {
         case .plaintext:
             return .plaintext
         case .tls(let verification):
+            let skipVerification = verification == .automatic ? await isLocalNetwork(endpoint) : false
             return .tls { config in
                 switch verification {
                 case .automatic:
-                    config.serverCertificateVerification = endpoint.isLocalNetwork ? .noVerification : .fullVerification
+                    config.serverCertificateVerification = skipVerification ? .noVerification : .fullVerification
                 case .full:
                     config.serverCertificateVerification = .fullVerification
                 case .none:
@@ -306,5 +347,16 @@ public actor DrawThingsService {
                 }
             }
         }
+    }
+
+    /// Whether `.automatic` TLS should treat the endpoint as local: a local-network name or
+    /// address, or a host name whose addresses are all on the local network (for example a
+    /// public DNS name pointing at a LAN server).
+    private static func isLocalNetwork(_ endpoint: ServerEndpoint) async -> Bool {
+        if endpoint.isLocalNetwork { return true }
+        let addresses = await endpoint.resolveAddresses()
+        let local = !addresses.isEmpty && addresses.allSatisfy { ServerEndpoint(host: $0).isLocalNetwork }
+        DTLogger.debug("\(endpoint.host) resolves to \(addresses); treating as \(local ? "local" : "public") for TLS verification", category: .connection)
+        return local
     }
 }

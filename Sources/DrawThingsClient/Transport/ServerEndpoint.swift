@@ -112,6 +112,40 @@ public struct ServerEndpoint: Sendable, Hashable, CustomStringConvertible {
     /// True when `host` is an IPv6 literal.
     var isIPv6Literal: Bool { host.contains(":") }
 
+    /// True when `host` is a dotted-quad IPv4 literal.
+    var isIPv4Literal: Bool {
+        let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+        return parts.count == 4 && parts.allSatisfy { UInt8($0) != nil }
+    }
+
+    /// Resolves `host` to its IP addresses (as strings) without blocking the caller.
+    /// Returns the host itself for IP literals and an empty array when resolution fails.
+    func resolveAddresses() async -> [String] {
+        if isIPv4Literal || isIPv6Literal { return [host] }
+        let host = self.host
+        return await Task.detached(priority: .userInitiated) {
+            var hints = addrinfo()
+            hints.ai_family = AF_UNSPEC
+            hints.ai_socktype = SOCK_STREAM
+            var result: UnsafeMutablePointer<addrinfo>?
+            guard getaddrinfo(host, nil, &hints, &result) == 0, let first = result else { return [] }
+            defer { freeaddrinfo(first) }
+            var addresses: [String] = []
+            var cursor: UnsafeMutablePointer<addrinfo>? = first
+            while let info = cursor {
+                var buffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                if getnameinfo(info.pointee.ai_addr, info.pointee.ai_addrlen, &buffer, socklen_t(buffer.count),
+                               nil, 0, NI_NUMERICHOST) == 0 {
+                    // Drop any IPv6 zone suffix (fe80::1%en0).
+                    let address = String(decoding: buffer.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self)
+                    addresses.append(String(address.split(separator: "%").first ?? ""))
+                }
+                cursor = info.pointee.ai_next
+            }
+            return addresses
+        }.value
+    }
+
     public var description: String {
         isIPv6Literal ? "[\(host)]:\(port)" : "\(host):\(port)"
     }
