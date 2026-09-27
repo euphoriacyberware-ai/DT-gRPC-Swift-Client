@@ -12,6 +12,10 @@ let package = Package(
             name: "DrawThingsClient",
             targets: ["DrawThingsClient"]
         ),
+        .library(
+            name: "DrawThingsClientUI",
+            targets: ["DrawThingsClientUI"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.4.0"),
@@ -58,9 +62,13 @@ let package = Package(
                 .copy("Resources/models.json"),
             ]
         ),
+        .target(
+            name: "DrawThingsClientUI",
+            dependencies: ["DrawThingsClient"]
+        ),
         .testTarget(
             name: "DrawThingsClientTests",
-            dependencies: ["DrawThingsClient", "CFpzip"]
+            dependencies: ["DrawThingsClient", "DrawThingsClientUI", "CFpzip"]
         ),
     ],
     swiftLanguageModes: [.v6],
