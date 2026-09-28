@@ -3,7 +3,7 @@
 All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 2.1.0 — 2026-09-27
 
 ### Changed
 - DrawThingsKit: `ProfileStorage` keeps server shared secrets in the Keychain instead of
