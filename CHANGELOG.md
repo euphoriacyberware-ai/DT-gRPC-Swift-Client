@@ -3,7 +3,7 @@
 All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
-## 2.0.0 — Unreleased
+## 2.0.0 — 2026-09-27
 
 A major rework for Swift 6 that also brings DrawThingsQueue, DrawThingsVideoKit and DrawThingsKit
 into this package as optional products. See [MIGRATING-2.0.md](MIGRATING-2.0.md) for the API mapping.
