@@ -230,6 +230,21 @@ fpzip_read_from_buffer(
   return static_cast<FPZ*>(stream);
 }
 
+// associate memory buffer of known size with compressed input stream
+// (DrawThingsClient addition: reading past `size` sets the stream error instead of overrunning)
+FPZ*
+fpzip_read_from_buffer_size(
+  const void* buffer, // pointer to compressed data
+  size_t size         // size of compressed data in bytes
+)
+{
+  fpzip_errno = fpzipSuccess;
+  FPZinput* stream = allocate_input();
+  stream->rd = new RCmemdecoder(buffer, size);
+  stream->rd->init();
+  return static_cast<FPZ*>(stream);
+}
+
 // close stream for reading and clean up
 void
 fpzip_read_close(
@@ -277,6 +292,12 @@ fpzip_read_header(
   stream->ny = rd->decode<uint>(32);
   stream->nz = rd->decode<uint>(32);
   stream->nf = rd->decode<uint>(32);
+
+  // DrawThingsClient addition: fail if a bounded reader ran out of data
+  if (rd->error) {
+    fpzip_errno = fpzipErrorReadStream;
+    return 0;
+  }
 
   return 1;
 }

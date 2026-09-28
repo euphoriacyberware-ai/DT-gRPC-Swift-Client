@@ -1,6 +1,7 @@
 #include "fpzip.h"
 
-fpzipError fpzip_errno;
+// DrawThingsClient: per thread (see fpzip.h).
+thread_local fpzipError fpzip_errno;
 
 const char* const fpzip_errstr[] = {
   "success",

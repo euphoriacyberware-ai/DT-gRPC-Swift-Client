@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v2, "release/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS build and test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+      - name: Build the example app
+        run: swift build --package-path Examples/DrawThingsExample
+
+  ios:
+    name: iOS simulator build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme DrawThingsSwift-Package \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/xcode
+      - name: Build the example app for iOS Simulator
+        working-directory: Examples/DrawThingsExample
+        run: |
+          xcodebuild build \
+            -scheme DrawThingsExample \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ../../.build/xcode-example
