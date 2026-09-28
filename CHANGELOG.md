@@ -3,13 +3,25 @@
 All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 2.2.0 — 2026-09-28
 
 ### Added
 - `skills/drawthings-swift`, an Agent Skill that teaches coding agents (Claude Code, OpenAI Codex,
   Qwen Code, DeepSeek agents) to use the library in apps; install it with
   `npx skills add euphoriacyberware-ai/DrawThings-Swift --skill drawthings-swift`.
 - `AGENTS.md` for agents working on this repository, imported by `CLAUDE.md` and `QWEN.md`.
+- DrawThingsKit: `ConfigurationDefaults.model` and `ConfigurationDefaults.resolutionDependentShift`.
+
+### Changed
+- `DrawThingsConfiguration()`'s defaults are now Draw Things' own preset for Z Image Turbo, a model
+  most servers have: `z_image_turbo_1.0_q8p.ckpt`, 1024×1024, 8 steps, UniPC Trailing, guidance 1,
+  shift 3, `resolutionDependentShift` false. The old defaults (`sd_xl_base_1.0.safetensors`, a file
+  name Draw Things doesn't use, 512×512, 20 steps, DPM++ 2M Karras, guidance 7, shift 1) made
+  servers return no image. Values missing from JSON passed to `fromJSON(_:)` take the new defaults.
+  DrawThingsKit's `ConfigurationDefaults` and `ConfigurationManager`'s starting configuration follow.
+- Examples and docs use the app's Z Image Turbo preset (UniPC Trailing, no resolution-dependent
+  shift, rather than DPM++ 2M Trailing), no longer pair Z Image with an SDXL ControlNet or a refiner
+  LoRA, and the MiniMax H3 video example uses the settings Draw Things exports for it.
 
 ## 2.1.0 — 2026-09-27
 

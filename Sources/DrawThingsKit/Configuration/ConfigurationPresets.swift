@@ -157,18 +157,21 @@ extension LoRAMode {
 
 // MARK: - Configuration Defaults
 
-/// Default values for configuration parameters.
+/// Default values for configuration parameters, matching `DrawThingsConfiguration()`: Draw Things'
+/// preset for Z Image Turbo. Sampler, steps, guidance and shift suit that model only.
 public enum ConfigurationDefaults {
     // Core
+    public static let model = "z_image_turbo_1.0_q8p.ckpt"
     public static let width: Int32 = 1024
     public static let height: Int32 = 1024
-    public static let steps: Int32 = 30
-    public static let guidanceScale: Float = 7.0
-    public static let sampler: SamplerType = .dpmpp2mkarras
+    public static let steps: Int32 = 8
+    public static let guidanceScale: Float = 1.0
+    public static let sampler: SamplerType = .unipctrailing
 
     // Sampling
     public static let clipSkip: Int32 = 1
-    public static let shift: Float = 1.0
+    public static let shift: Float = 3.0
+    public static let resolutionDependentShift = false
     public static let strength: Float = 1.0
 
     // Batch

@@ -14,7 +14,7 @@ let request = GenerationRequest(
     prompt: "A lighthouse on a rocky coast at sunset",
     configuration: DrawThingsConfiguration(
         width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
-        sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+        sampler: .unipctrailing, guidanceScale: 1, shift: 3, resolutionDependentShift: false
     )
 )
 for try await event in service.stream(request) {

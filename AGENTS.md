@@ -75,10 +75,11 @@ xcodebuild build -scheme DrawThingsSwift-Package -destination 'generic/platform=
 
 Only when a real server is available and the user agrees:
 - The Draw Things app's API server (default port 7859, TLS on) or `gRPCServerCLI`.
-- Use settings that suit the model. The configuration defaults (DPM++ 2M Karras, guidance 7,
-  shift 1) make many models return no image, and some servers crash on the next request. For Z Image
-  Turbo use `sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3`; for other models use a
-  configuration copied from Draw Things.
+- Use settings that suit the model. `DrawThingsConfiguration()`'s defaults are Draw Things' preset
+  for Z Image Turbo (`z_image_turbo_1.0_q8p.ckpt`, 8 steps, UniPC Trailing, guidance 1, shift 3, no
+  resolution-dependent shift); use them as is, or for other models a configuration copied from
+  Draw Things (upstream presets: `MediaGenerationKit/Resources/configs.json`). Unsuitable settings
+  make the server return no image, and some servers crash on the next request.
 - Bridge Mode to Draw Things+ passes generation to the cloud: fine for a few requests, but don't
   send large batches.
 
