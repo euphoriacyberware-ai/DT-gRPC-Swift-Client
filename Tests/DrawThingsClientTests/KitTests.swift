@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import DrawThingsClient
 @testable import DrawThingsKit
@@ -39,7 +40,7 @@ struct ServerProfileTests {
         let suite = "DrawThingsKitTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let storage = ProfileStorage(userDefaults: defaults, keyPrefix: "test")
+        let storage = ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: MemorySecrets())
         #expect(storage.loadProfiles().isEmpty)
 
         let profiles = [ServerProfile(name: "One", host: "a"), ServerProfile(name: "Two", host: "b", sharedSecret: "x")]
@@ -50,13 +51,119 @@ struct ServerProfileTests {
     }
 }
 
+/// An in-memory ``SecretStore`` that can be told to fail.
+final class MemorySecrets: SecretStore {
+    private let values = Mutex<[String: String]>([:])
+    private let failing: Bool
+    init(failing: Bool = false) { self.failing = failing }
+
+    var all: [String: String] { values.withLock { $0 } }
+
+    func secret(for account: String) throws -> String? {
+        if failing { throw KeychainError(status: errSecNotAvailable) }
+        return values.withLock { $0[account] }
+    }
+
+    func setSecret(_ secret: String?, for account: String) throws {
+        if failing { throw KeychainError(status: errSecNotAvailable) }
+        values.withLock { $0[account] = secret }
+    }
+}
+
+@Suite("Shared secrets")
+struct SharedSecretTests {
+    private func defaults() throws -> (UserDefaults, () -> Void) {
+        let suite = "DrawThingsKitTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        return (defaults, { defaults.removePersistentDomain(forName: suite) })
+    }
+
+    private func savedText(_ defaults: UserDefaults) -> String {
+        defaults.data(forKey: "test.serverProfiles").map { String(decoding: $0, as: UTF8.self) } ?? ""
+    }
+
+    @Test func secretsAreKeptOutOfUserDefaults() throws {
+        let (defaults, cleanup) = try defaults()
+        defer { cleanup() }
+        let secrets = MemorySecrets()
+        let storage = ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: secrets)
+        let profile = ServerProfile(name: "Studio", host: "studio.local", sharedSecret: "hunter2")
+
+        storage.saveProfiles([profile])
+        #expect(!savedText(defaults).contains("hunter2"))
+        #expect(savedText(defaults).contains("studio.local"))
+        #expect(secrets.all == [profile.id.uuidString: "hunter2"])
+        #expect(storage.loadProfiles().first?.sharedSecret == "hunter2")
+    }
+
+    @Test func plaintextSecretsFromEarlierVersionsMove() throws {
+        let (defaults, cleanup) = try defaults()
+        defer { cleanup() }
+        // As DrawThingsKit 2.2 and DrawThings-Swift 2.0.0 saved them.
+        let profile = ServerProfile(name: "Old", host: "old.local", sharedSecret: "legacy")
+        defaults.set(try JSONEncoder().encode([profile]), forKey: "test.serverProfiles")
+        #expect(savedText(defaults).contains("legacy"))
+
+        let secrets = MemorySecrets()
+        let loaded = ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: secrets).loadProfiles()
+        #expect(loaded.first?.sharedSecret == "legacy")
+        #expect(secrets.all == [profile.id.uuidString: "legacy"])
+        #expect(!savedText(defaults).contains("legacy"))
+    }
+
+    @Test func removedProfilesLoseTheirSecrets() throws {
+        let (defaults, cleanup) = try defaults()
+        defer { cleanup() }
+        let secrets = MemorySecrets()
+        let storage = ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: secrets)
+        let keep = ServerProfile(name: "Keep", host: "a", sharedSecret: "one")
+        let drop = ServerProfile(name: "Drop", host: "b", sharedSecret: "two")
+
+        storage.saveProfiles([keep, drop])
+        storage.saveProfiles([keep])
+        #expect(secrets.all == [keep.id.uuidString: "one"])
+
+        var changed = keep
+        changed.sharedSecret = nil
+        storage.saveProfiles([changed])
+        #expect(secrets.all.isEmpty)
+
+        storage.saveProfiles([keep])
+        storage.clearProfiles()
+        #expect(secrets.all.isEmpty)
+    }
+
+    @Test func secretsStayInUserDefaultsWhenTheKeychainFails() throws {
+        let (defaults, cleanup) = try defaults()
+        defer { cleanup() }
+        let storage = ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: MemorySecrets(failing: true))
+        storage.saveProfiles([ServerProfile(name: "S", host: "s", sharedSecret: "kept")])
+        #expect(savedText(defaults).contains("kept"))
+        #expect(storage.loadProfiles().first?.sharedSecret == "kept")
+    }
+
+    @Test func keychainRoundTrip() throws {
+        let store = KeychainSecretStore(service: "DrawThingsKitTests.\(UUID().uuidString)")
+        let account = UUID().uuidString
+        defer { try? store.setSecret(nil, for: account) }
+
+        #expect(try store.secret(for: account) == nil)
+        try store.setSecret("first", for: account)
+        #expect(try store.secret(for: account) == "first")
+        try store.setSecret("second", for: account)
+        #expect(try store.secret(for: account) == "second")
+        try store.setSecret(nil, for: account)
+        #expect(try store.secret(for: account) == nil)
+    }
+}
+
 @Suite("ConnectionManager")
 @MainActor
 struct ConnectionManagerTests {
     private func manager() throws -> (ConnectionManager, () -> Void) {
         let suite = "DrawThingsKitTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
-        return (ConnectionManager(storage: ProfileStorage(userDefaults: defaults, keyPrefix: "test")),
+        return (ConnectionManager(storage: ProfileStorage(userDefaults: defaults, keyPrefix: "test", secrets: MemorySecrets())),
                 { defaults.removePersistentDomain(forName: suite) })
     }
 

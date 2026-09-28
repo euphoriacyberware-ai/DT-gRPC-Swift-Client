@@ -3,6 +3,18 @@
 All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
+## 2.1.0 — 2026-09-27
+
+### Changed
+- DrawThingsKit: `ProfileStorage` keeps server shared secrets in the Keychain instead of
+  `UserDefaults`. Secrets saved by DrawThingsKit 2.2 or DrawThings-Swift 2.0.0 move to the Keychain
+  when profiles are first loaded; if the Keychain can't be written, a secret stays where it was.
+  Deleting a profile deletes its secret. No code changes are needed.
+
+### Added
+- `SecretStore`, `KeychainSecretStore` and `KeychainError`; `ProfileStorage(secrets:)` accepts
+  another store.
+
 ## 2.0.0 — 2026-09-27
 
 A major rework for Swift 6 that also brings DrawThingsQueue, DrawThingsVideoKit and DrawThingsKit
