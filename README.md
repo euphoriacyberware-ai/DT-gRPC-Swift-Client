@@ -67,6 +67,25 @@ Each optional product depends only on DrawThingsClient, and `import DrawThingsKi
 
 **Third-party packages** (resolved by Swift Package Manager): [grpc-swift-2](https://github.com/grpc/grpc-swift-2), [grpc-swift-nio-transport](https://github.com/grpc/grpc-swift-nio-transport), [grpc-swift-protobuf](https://github.com/grpc/grpc-swift-protobuf), [swift-protobuf](https://github.com/apple/swift-protobuf) and [flatbuffers](https://github.com/google/flatbuffers). fpzip (floating-point tensor decompression) is bundled as the `CFpzip` target.
 
+## AI coding agents
+
+[`skills/drawthings-swift`](skills/drawthings-swift/SKILL.md) is an [Agent Skill](https://agentskills.io) that teaches coding agents how to use these libraries in an app: which product to use, the settings and connection rules that avoid failed generations, and the 2.x APIs (models often suggest 1.x code that no longer compiles). Install it into your app's project with the cross-agent installer, which asks which agents you use:
+
+```bash
+npx skills add euphoriacyberware-ai/DrawThings-Swift --skill drawthings-swift
+```
+
+Or copy the `skills/drawthings-swift` folder into the agent's skills folder:
+
+| Agent | Project folder | Personal folder |
+|---|---|---|
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| OpenAI Codex | `.agents/skills/` | `~/.agents/skills/` |
+| Qwen Code | `.qwen/skills/` | `~/.qwen/skills/` |
+| DeepSeek agents (Deep Code, DeepSeek Harness) | | `~/.agents/skills/` |
+
+Agents working on this repository itself read [AGENTS.md](AGENTS.md) (Claude Code through `CLAUDE.md`, Qwen Code through `QWEN.md`).
+
 ## Quick start
 
 ### SwiftUI

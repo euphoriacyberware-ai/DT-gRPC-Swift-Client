@@ -3,6 +3,14 @@
 All notable changes to DrawThings-Swift (formerly DT-gRPC-Swift-Client) are documented here. The project follows
 [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+- `skills/drawthings-swift`, an Agent Skill that teaches coding agents (Claude Code, OpenAI Codex,
+  Qwen Code, DeepSeek agents) to use the library in apps; install it with
+  `npx skills add euphoriacyberware-ai/DrawThings-Swift --skill drawthings-swift`.
+- `AGENTS.md` for agents working on this repository, imported by `CLAUDE.md` and `QWEN.md`.
+
 ## 2.1.0 — 2026-09-27
 
 ### Changed
