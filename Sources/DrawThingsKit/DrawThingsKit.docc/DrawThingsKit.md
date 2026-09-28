@@ -30,10 +30,12 @@ queue.enqueue(configuration.makeRequest())
 
 ``ServerProfile`` stores a server's address, TLS setting and shared secret, and
 ``ServerProfile/connectionOptions`` turns them into the client's `ConnectionOptions`.
-``ConnectionManager`` keeps the profiles (in `UserDefaults` through ``ProfileStorage``), connects
-with an echo that also checks the shared secret, and exposes ``ConnectionManager/activeService``.
+``ConnectionManager`` keeps the profiles through ``ProfileStorage``, connects with an echo that also
+checks the shared secret, and exposes ``ConnectionManager/activeService``.
 
-> Important: Profiles, including their shared secrets, are stored in `UserDefaults` in plain text.
+``ProfileStorage`` saves profiles in `UserDefaults` and their shared secrets in the Keychain
+(``KeychainSecretStore``). Secrets that earlier versions saved in `UserDefaults` move to the Keychain
+the first time profiles are loaded. Pass your own ``SecretStore`` to keep them elsewhere.
 
 ### Models
 
@@ -59,6 +61,9 @@ system pasteboard for copy and paste with the app.
 - ``ConnectionState``
 - ``ServerProfile``
 - ``ProfileStorage``
+- ``SecretStore``
+- ``KeychainSecretStore``
+- ``KeychainError``
 
 ### Models
 

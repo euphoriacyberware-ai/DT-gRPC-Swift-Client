@@ -494,7 +494,7 @@ configuration.selectedCheckpoint = models.baseModels.first
 let request = configuration.makeRequest()                 // prompt, model, LoRAs and configuration
 ```
 
-- **`ConnectionManager`** keeps `ServerProfile`s (host, port, TLS, shared secret) in `UserDefaults`, connects with an echo that checks the shared secret, and exposes `activeService`, `connectionState` and `serverRequiresSharedSecret`. Shared secrets are stored in plain text.
+- **`ConnectionManager`** keeps `ServerProfile`s (host, port, TLS, shared secret), connects with an echo that checks the shared secret, and exposes `activeService`, `connectionState` and `serverRequiresSharedSecret`. Profiles are saved in `UserDefaults` and their shared secrets in the Keychain.
 - **`ModelsManager`** lists the server's checkpoints, LoRAs, ControlNets, textual inversions and upscalers (with model browsing on). With `bridgeMode` it adds the official and community models available through Draw Things+, bundled as `CloudModels`. `compatibleLoRAs` and `compatibleControlNets` follow the selected checkpoint's version.
 - **`ConfigurationManager`** holds the prompt, selected models, LoRAs and ControlNets, and the `DrawThingsConfiguration`. `loadFromJSON(_:)` and `exportToJSON()` read and write Draw Things JSON, for copy and paste with the app through the system pasteboard.
 - **Presets**: `DimensionPresets`, `SamplerPresets` (display names for every sampler) and `SavedConfiguration` (a SwiftData model for saved configurations).
