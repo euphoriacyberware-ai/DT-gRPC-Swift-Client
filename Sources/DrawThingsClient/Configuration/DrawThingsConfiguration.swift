@@ -71,6 +71,11 @@ public struct ControlConfig: Sendable, Hashable {
 /// ``validate()`` reports values the server can't accept; ``toFlatBufferData()`` calls it.
 /// The configuration is `Codable` in Draw Things' own JSON format (the format of the app's
 /// "Copy Configuration"), see ``toJSON(includeSeed:)`` and ``fromJSON(_:)``.
+///
+/// The defaults are Draw Things' own preset for Z Image Turbo (`z_image_turbo_1.0_q8p.ckpt`,
+/// 1024×1024, 8 steps, UniPC Trailing, guidance 1, shift 3, no resolution-dependent shift),
+/// a model most servers have. Sampler, steps, guidance and shift depend on the model: when you
+/// change `model`, set them for that model too, ideally from the app's Copy Configuration.
 public struct DrawThingsConfiguration: Sendable, Hashable {
     // Core parameters (sizes are sent in units of 64 pixels, rounded down)
     public var width: Int32
@@ -214,17 +219,17 @@ public struct DrawThingsConfiguration: Sendable, Hashable {
     public var seedMode: SeedMode
 
     public init(
-        width: Int32 = 512,
-        height: Int32 = 512,
-        steps: Int32 = 20,
-        model: String = "sd_xl_base_1.0.safetensors",
-        sampler: SamplerType = .dpmpp2mkarras,
-        guidanceScale: Float = 7.0,
+        width: Int32 = 1024,
+        height: Int32 = 1024,
+        steps: Int32 = 8,
+        model: String = "z_image_turbo_1.0_q8p.ckpt",
+        sampler: SamplerType = .unipctrailing,
+        guidanceScale: Float = 1.0,
         seed: UInt32? = nil,
         clipSkip: Int32 = 1,
         loras: [LoRAConfig] = [],
         controls: [ControlConfig] = [],
-        shift: Float = 1.0,
+        shift: Float = 3.0,
         shiftForAudio: Float = 3.0,
         batchCount: Int32 = 1,
         batchSize: Int32 = 1,
@@ -258,7 +263,7 @@ public struct DrawThingsConfiguration: Sendable, Hashable {
         negativeOriginalImageHeight: Int32 = 0,
         negativeOriginalImageWidth: Int32 = 0,
         upscalerScaleFactor: Int32 = 0,
-        resolutionDependentShift: Bool = true,
+        resolutionDependentShift: Bool = false,
         t5TextEncoder: Bool = true,
         separateClipL: Bool = false,
         separateOpenClipG: Bool = false,

@@ -50,7 +50,7 @@ Only DrawThingsClient is required; add the others as you need them. The librarie
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.0.0")
+    .package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.2.0")
 ]
 ```
 
@@ -115,7 +115,7 @@ struct ContentView: View {
                         configuration: DrawThingsConfiguration(
                             width: 1024, height: 1024, steps: 8,
                             model: "z_image_turbo_1.0_q8p.ckpt",
-                            sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+                            sampler: .unipctrailing, guidanceScale: 1, shift: 3, resolutionDependentShift: false
                         )
                     ))
                     image = result?.images.first ?? image
@@ -130,7 +130,7 @@ struct ContentView: View {
 
 `DrawThingsSession` exposes `isConnected`, `serverInfo`, `isGenerating`, `progress`, `preview`, `remoteDownload`, `lastResult` and `lastError`, plus `cancel()`. It runs one generation at a time; `generate` throws `SessionError.busy` if another is running. For more than one at a time, use [`GenerationQueue`](#drawthingsqueue).
 
-> **Model settings matter.** Sampler, guidance and shift depend on the model. Z Image Turbo, used in these examples, needs a trailing sampler, guidance 1 and shift 3; with the configuration defaults (guidance 7, DPM++ 2M Karras, shift 1) the server returns no image, and the client throws `DrawThingsError.incompleteResponse`. The easiest source of correct settings is Draw Things itself: use Copy Configuration and [load the JSON](#draw-things-configuration-json).
+> **Model settings matter.** Sampler, steps, guidance and shift depend on the model. The examples use Z Image Turbo, which most Draw Things servers have, with Draw Things' own preset for it (8 steps, UniPC Trailing, guidance 1, shift 3, no resolution-dependent shift). These are also `DrawThingsConfiguration()`'s defaults, so changing only `model` leaves settings meant for Z Image Turbo. With unsuitable settings the server returns no image, the client throws `DrawThingsError.incompleteResponse`, and some servers crash on the next request. The easiest source of correct settings for another model is Draw Things itself: use Copy Configuration and [load the JSON](#draw-things-configuration-json).
 
 ### Without SwiftUI
 
@@ -199,10 +199,11 @@ A TLS/plaintext mismatch or a rejected certificate surfaces as `DrawThingsError.
 var configuration = DrawThingsConfiguration(
     width: 1024, height: 1024, steps: 8,
     model: "z_image_turbo_1.0_q8p.ckpt",
-    sampler: .dpmpp2mtrailing,
+    sampler: .unipctrailing,
     guidanceScale: 1,
     seed: 12345,          // nil = random
-    shift: 3
+    shift: 3,
+    resolutionDependentShift: false
 )
 
 let request = GenerationRequest(
@@ -222,7 +223,7 @@ Sizes are in pixels and are sent to the server in units of 64, rounded down. `va
 ```swift
 var configuration = DrawThingsConfiguration(
     width: 768, height: 768, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
-    sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3, strength: 0.6
+    sampler: .unipctrailing, guidanceScale: 1, shift: 3, strength: 0.6, resolutionDependentShift: false
 )
 let request = GenerationRequest(prompt: "A red fox, watercolor", configuration: configuration, image: photo)
 
@@ -237,12 +238,11 @@ The client encodes the canvas as an RGB tensor and the mask as Draw Things' 1-by
 
 ```swift
 configuration.loras = [
-    LoRAConfig(file: "style_lora_f16.ckpt", weight: 0.8),              // mode: .all
-    LoRAConfig(file: "refiner_detail_lora_f16.ckpt", weight: 0.5, mode: .refiner),
+    LoRAConfig(file: "my_z_image_style_lora_f16.ckpt", weight: 0.8),   // mode: .all (or .base, .refiner)
 ]
 ```
 
-The client sends a specification for each LoRA. A LoRA with no known spec gets a minimal one using the model's version, because the server silently skips LoRAs it has no spec for.
+A LoRA must be trained for the configuration's model (here Z Image); use the file name Draw Things shows for an imported LoRA. The client sends a specification for each LoRA. A LoRA with no known spec gets a minimal one using the model's version, because the server silently skips LoRAs it has no spec for.
 
 ### Hints, moodboard and ControlNet
 
@@ -271,16 +271,23 @@ ControlNet models are configured as controls; their input images are sent as hin
 
 ```swift
 configuration.controls = [
-    ControlConfig(file: "controlnet_depth_sdxl_f16.ckpt", weight: 0.8, guidanceEnd: 0.7, controlMode: .control),
+    ControlConfig(file: "my_depth_controlnet_f16.ckpt", weight: 0.8, guidanceEnd: 0.7, controlMode: .control),
 ]
 ```
+
+As with LoRAs, a ControlNet must be made for the configuration's model family; Draw Things ships none for Z Image Turbo, so import one or use a model that has them.
 
 `ControlConfig` carries every Draw Things control setting: `weight`, `guidanceStart`/`guidanceEnd`, `controlMode` (`.balanced`, `.prompt`, `.control`), `globalAveragePooling` (true only for Shuffle), `noPrompt`, `downSamplingRate`, `inputOverride` and `targetBlocks`.
 
 ### Video and audio
 
 ```swift
-let configuration = DrawThingsConfiguration(width: 576, height: 384, steps: 4, model: "minimax_h3_fl2va_q8p.ckpt", numFrames: 49)
+// MiniMax H3 with a 3-step turbo LoRA, as copied from Draw Things ("H3 + Turbo" in DT Config Examples).
+var configuration = DrawThingsConfiguration(
+    width: 576, height: 384, steps: 4, model: "minimax_h3_fl2va_q8p.ckpt",
+    sampler: .ddimtrailing, guidanceScale: 1, shift: 12, numFrames: 49
+)
+configuration.loras = [LoRAConfig(file: "taomate_h3_3step_comfyui_lora_f16.ckpt", weight: 0.6)]
 let result = try await service.generate(GenerationRequest(prompt: "Waves on a beach, gulls calling", configuration: configuration))
 
 result.media.isVideo          // true

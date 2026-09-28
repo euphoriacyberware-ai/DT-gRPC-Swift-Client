@@ -45,9 +45,9 @@ server reports no models; the client falls back to its bundled specs), shared se
 var configuration = DrawThingsConfiguration(
     width: 1024, height: 1024, steps: 8,
     model: "z_image_turbo_1.0_q8p.ckpt",
-    sampler: .dpmpp2mtrailing, guidanceScale: 1,
+    sampler: .unipctrailing, guidanceScale: 1,
     seed: 12345,                      // UInt32?, nil = random
-    shift: 3
+    shift: 3, resolutionDependentShift: false
 )
 let request = GenerationRequest(
     prompt: "A watercolor of a harbor",
@@ -70,12 +70,13 @@ let request = GenerationRequest(
 ## LoRAs, ControlNet and hints
 
 ```swift
+// LoRAs and ControlNets must be made for the configuration's model family. Draw Things ships
+// none for Z Image Turbo; these names stand for files the user imported.
 configuration.loras = [
-    LoRAConfig(file: "style_lora_f16.ckpt", weight: 0.8),                       // mode: .all
-    LoRAConfig(file: "refiner_detail_lora_f16.ckpt", weight: 0.5, mode: .refiner),
+    LoRAConfig(file: "my_z_image_style_lora_f16.ckpt", weight: 0.8),   // mode: .all (or .base, .refiner)
 ]
 configuration.controls = [
-    ControlConfig(file: "controlnet_depth_sdxl_f16.ckpt", weight: 0.8, guidanceEnd: 0.7, controlMode: .control),
+    ControlConfig(file: "my_depth_controlnet_f16.ckpt", weight: 0.8, guidanceEnd: 0.7, controlMode: .control),
 ]
 
 var hints = HintBuilder()                   // a value type; methods are mutating

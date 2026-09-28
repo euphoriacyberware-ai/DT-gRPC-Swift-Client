@@ -59,11 +59,8 @@ final class AppModel {
         ))
         videoSettings = VideoConfiguration(outputURL: Self.videosFolder.appending(path: "video.mp4"))
         applyVideoSettings()
-        // A preset that suits Z Image Turbo; paste a configuration from Draw Things for other models.
-        configuration.activeConfiguration = DrawThingsConfiguration(
-            width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
-            sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
-        )
+        // The configuration starts with DrawThingsConfiguration()'s defaults, Draw Things' preset for
+        // Z Image Turbo; paste a configuration from Draw Things for other models.
     }
 
     /// Encoding settings for new videos (the output file is named after each job).

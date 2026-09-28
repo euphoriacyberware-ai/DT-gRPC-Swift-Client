@@ -14,7 +14,7 @@ package source (in `.build/checkouts/DrawThings-Swift/` or Xcode's package cache
 
 ```swift
 // Package.swift
-.package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.1.0"),
+.package(url: "https://github.com/euphoriacyberware-ai/DrawThings-Swift", from: "2.2.0"),
 
 // target dependencies: add only what the app uses
 .product(name: "DrawThingsClient", package: "DrawThings-Swift"),    // always
@@ -37,13 +37,13 @@ state types are `@Observable`, so build views on them (see `references/swiftui.m
 ## Rules that prevent the common failures
 
 1. **Model settings must suit the model.** Sampler, guidance and shift differ per model, and the
-   `DrawThingsConfiguration()` defaults (DPM++ 2M Karras, guidance 7, shift 1, SDXL) are wrong for
-   most modern models. With unsuitable settings the server renders nothing, the client throws
+   `DrawThingsConfiguration()` defaults are Draw Things' preset for Z Image Turbo, so they are wrong
+   for any other model: changing only `model` is not enough. With unsuitable settings the server renders nothing, the client throws
    `DrawThingsError.incompleteResponse`, and some servers crash on the next request. Best source of
    correct settings: Draw Things itself. The user sets up the model in the app, uses Copy
    Configuration, and the app loads that JSON (`DrawThingsConfiguration.fromJSON(_:)`, or
    `mergeJSON(_:)` onto a base). Known-good example, Z Image Turbo:
-   `DrawThingsConfiguration(width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt", sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3)`.
+   `DrawThingsConfiguration(width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt", sampler: .unipctrailing, guidanceScale: 1, shift: 3, resolutionDependentShift: false)`.
    Don't invent settings for other models; ask for the copied configuration or leave a clear TODO.
 2. **Security must match the server.** The Draw Things app's API server uses TLS by default:
    `ConnectionOptions(security: .tls())` (the default). Use `.plaintext` only when the server has
@@ -80,7 +80,7 @@ let request = GenerationRequest(
     prompt: "A lighthouse on a rocky coast at sunset",
     configuration: DrawThingsConfiguration(
         width: 1024, height: 1024, steps: 8, model: "z_image_turbo_1.0_q8p.ckpt",
-        sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+        sampler: .unipctrailing, guidanceScale: 1, shift: 3, resolutionDependentShift: false
     )
 )
 

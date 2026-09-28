@@ -28,7 +28,7 @@ public servers. See ``TransportSecurity/CertificateVerification``.
 let configuration = DrawThingsConfiguration(
     width: 1024, height: 1024, steps: 8,
     model: "z_image_turbo_1.0_q8p.ckpt",
-    sampler: .dpmpp2mtrailing, guidanceScale: 1, shift: 3
+    sampler: .unipctrailing, guidanceScale: 1, shift: 3, resolutionDependentShift: false
 )
 let result = try await service.generate(GenerationRequest(prompt: "A red fox in fresh snow", configuration: configuration))
 try ImageHelpers.saveImage(result.images[0], to: outputURL)

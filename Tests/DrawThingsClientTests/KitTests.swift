@@ -325,4 +325,22 @@ struct PresetTests {
         #expect(DimensionPresets.hd1280x720.height == 720)
         #expect(Set(DimensionPresets.all.map(\.id)).count == DimensionPresets.all.count)
     }
+
+    @Test func defaultsAreDrawThingsZImageTurboPreset() {
+        // Draw Things' preset (MediaGenerationKit/Resources/configs.json, "Z Image Turbo 1.0").
+        let configuration = DrawThingsConfiguration()
+        #expect(configuration.model == "z_image_turbo_1.0_q8p.ckpt")
+        #expect(configuration.sampler == .unipctrailing)
+        #expect((configuration.steps, configuration.guidanceScale, configuration.shift) == (8, 1, 3))
+        #expect(!configuration.resolutionDependentShift)
+        #expect(ModelFamily.detect(from: configuration.model) == .zImage)
+
+        #expect(ConfigurationDefaults.model == configuration.model)
+        #expect((ConfigurationDefaults.width, ConfigurationDefaults.height) == (configuration.width, configuration.height))
+        #expect(ConfigurationDefaults.steps == configuration.steps)
+        #expect(ConfigurationDefaults.sampler == configuration.sampler)
+        #expect(ConfigurationDefaults.guidanceScale == configuration.guidanceScale)
+        #expect(ConfigurationDefaults.shift == configuration.shift)
+        #expect(ConfigurationDefaults.resolutionDependentShift == configuration.resolutionDependentShift)
+    }
 }

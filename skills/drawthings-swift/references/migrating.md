@@ -5,7 +5,7 @@ DrawThingsVideoKit and DrawThingsKit packages. None of it compiles against 2.x. 
 
 | Old (doesn't exist in 2.x) | 2.x |
 |---|---|
-| `.package(url: ".../DT-gRPC-Swift-Client", ...)`, `branch: "main"` | `.package(url: ".../DrawThings-Swift", from: "2.1.0")`, products from package `DrawThings-Swift` |
+| `.package(url: ".../DT-gRPC-Swift-Client", ...)`, `branch: "main"` | `.package(url: ".../DrawThings-Swift", from: "2.2.0")`, products from package `DrawThings-Swift` |
 | `DrawThingsClient` class, `@StateObject var client` | `DrawThingsSession`, `@State var session` |
 | `DrawThingsService(address:useTLS:)` | `DrawThingsService(address:options: ConnectionOptions(security: .tls() / .plaintext))` |
 | `echo(sharedSecret:)`, per-call `sharedSecret:` | `ConnectionOptions(sharedSecret:)`; `echo()` |
