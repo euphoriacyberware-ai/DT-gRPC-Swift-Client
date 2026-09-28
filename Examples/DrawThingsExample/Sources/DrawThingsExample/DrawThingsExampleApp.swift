@@ -5,6 +5,9 @@ import SwiftUI
 
 @main
 struct DrawThingsExampleApp: App {
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    #endif
     @State private var model = AppModel()
 
     var body: some Scene {
@@ -18,6 +21,17 @@ struct DrawThingsExampleApp: App {
         }
     }
 }
+
+#if os(macOS)
+/// Run from a Swift package, the app has no bundle, so macOS starts it as a background process:
+/// no Dock icon, and its window stays behind other apps. Make it a regular app and bring it forward.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+    }
+}
+#endif
 
 /// Ties the library's observable objects together: a connection, the configuration being edited,
 /// a queue on the connected server, and a video processor fed by the queue's results.

@@ -20,6 +20,10 @@ Movies/DrawThingsExample on macOS).
 Open `Package.swift` in Xcode, choose the DrawThingsExample scheme and a Mac or iOS destination,
 and run. On macOS, `swift run` in this folder also works.
 
+Run from a Swift package, the app has no bundle, so macOS would start it as a background process
+with its window hidden behind other apps. `AppDelegate` makes it a regular app with a Dock icon at
+launch. A real app target in an Xcode project doesn't need this.
+
 The app starts with a Z Image Turbo configuration (`z_image_turbo_1.0_q8p.ckpt`, DPM++ 2M
 Trailing, guidance 1, shift 3). Sampler, guidance and shift depend on the model, and a model given
 unsuitable settings can fail on the server. For other models, set them up in Draw Things, use
