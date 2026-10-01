@@ -4,4 +4,3 @@ DerivedData/
 xcuserdata/
 .swiftpm/
 .build/
-Examples/*/Package.resolved
