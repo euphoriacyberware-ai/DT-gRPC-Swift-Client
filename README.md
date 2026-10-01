@@ -556,6 +556,9 @@ The tests include an in-process gRPC server that stands in for Draw Things, so t
 - `Scripts/generate.sh <path-to-draw-things-community>` regenerates the protobuf, gRPC and FlatBuffers code in `Sources/DrawThingsClient/Generated` (and the test server stubs) from the protocol schemas in a local checkout of [draw-things-community](https://github.com/drawthingsai/draw-things-community). The schemas themselves are not stored in this repository. It needs `protoc` and `flatc` 25.9.23; the protoc plugins are built from the package's pinned dependencies.
 - `Scripts/update-model-specs.sh` refreshes the bundled `models.json`. CI runs it weekly and opens a pull request when it changed.
 
+## Support Me
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow?logo=buymeacoffee&logoColor=white)](https://buymeacoffee.com/euphoriacyberware)
+
 ## Credits
 
 This Swift framework began as a port of the TypeScript implementation by KC Jerrell: [dt-grpc-ts](https://github.com/kcjerrell/dt-grpc-ts). Special thanks to KC for pioneering the TypeScript gRPC client for Draw Things, which served as the foundation for this Swift implementation.
@@ -567,5 +570,4 @@ MIT License. See [LICENSE](LICENSE).
 ## Disclaimer
 
 The "Draw Things" name is used in this project only because Draw Things is the application these libraries are designed to work with. The author is not affiliated with, endorsed by, or associated with the developers of Draw Things.
-
-DrawThings-Swift is an independent client for the Draw Things gRPC protocol. To interoperate with Draw Things servers, its generated protocol code (`Sources/DrawThingsClient/Generated`) is produced from the protocol and configuration schemas published in [draw-things-community](https://github.com/drawthingsai/draw-things-community) (GPL-3.0), and parts of its tensor, preview and configuration handling follow the behavior of that project so that results match the Draw Things app. The schemas themselves are not included in this repository.
+DrawThings-Swift is an independent client for the Draw Things gRPC protocol. To interoperate with Draw Things servers, its generated protocol code (`Sources/DrawThingsClient/Generated`) is produced from the protocol and configuration schemas published in [draw-things-community](https://github.com/drawthingsai/draw-things-community) (GPL-3.0). The original schema files themselves are not included in this repository.
